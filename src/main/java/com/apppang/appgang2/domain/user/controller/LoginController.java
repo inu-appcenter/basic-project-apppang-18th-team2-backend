@@ -4,6 +4,7 @@ import com.apppang.appgang2.domain.user.dto.LoginRequest;
 import com.apppang.appgang2.domain.user.service.AuthService;
 import com.apppang.appgang2.global.util.JwtUtil;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
@@ -22,6 +23,9 @@ public class LoginController {
 
     private final AuthService authService;
 
+    @Value("${jwt.refresh-token.expiration}")
+    private long refreshTokenExpirationMs;
+
     @PostMapping("/api/auth/login")
     public ResponseEntity<Map<String, String>> login(@RequestBody LoginRequest request) {
 
@@ -29,12 +33,14 @@ public class LoginController {
         String accessToken = tokens.get("accessToken");
         String refreshToken = tokens.get("refreshToken");
 
+        //쿠키 수명은 초 단위로 저장
+        long maxAgeSeconds = refreshTokenExpirationMs/1000;
 
         //refreshToken cookie에 저장
         ResponseCookie cookie = ResponseCookie.from("refreshToken", refreshToken)
                 .httpOnly(true)
                 .path("/")
-                .maxAge(60*60*24*14)
+                .maxAge(maxAgeSeconds)
                 .build();
 
         //프론트엔드 바디에 내려줄 Access Token

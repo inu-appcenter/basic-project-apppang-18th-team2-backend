@@ -3,22 +3,37 @@ package com.apppang.appgang2.global.util;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
+import jakarta.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 
+import java.nio.charset.StandardCharsets;
 import java.security.Key;
+import java.util.Base64;
 import java.util.Date;
 
 @Component
 public class JwtUtil {
-    private Key key; //위의 문자열을 암호화 알고리즘이 쓸 수 있는 Key 객체로 변환해 저장할 변수
-    private static final long accessTokenExpirationMs = 60*60*1000; //60분
-    private static final long refreshTokenExpirationMs = 60*60*1000*24*14; //14일
+    //application-secret.yml에 저장한 값 불러오기
+    @Value("${jwt.access-token.expiration}")
+    private long accessTokenExpirationMs;
 
-    //application-secret.yml에서 비밀키 읽기
-    public JwtUtil(@Value("${jwt.secret}")String secretKey){
-        this.key = Keys.hmacShaKeyFor(secretKey.getBytes());
+    @Value("${jwt.refresh-token.expiration}")
+    private long refreshTokenExpirationMs;
+
+    @Value("${jwt.secret}")
+    private String secretKey;
+
+    private Key key;    //위의 문자열을 암호화 알고리즘이 쓸 수 있는 Key 객체로 변환해 저장할 변수
+
+    //모든 의존성 주입이 이루어진 후 수행
+    @PostConstruct
+    public void init(){
+        //보안을 위해 시크릿 키는 base 64로 인코딩된 상태이므로 사용 전 디코딩 과정
+        byte[] keyBytes = Base64.getDecoder().decode(secretKey);
+        //jjwt 라이브러리가 서명에 사용할 수 있도록 HMAC-SHA 알고리즘 기반의 Key 객체로 변환
+        key = Keys.hmacShaKeyFor(keyBytes);
     }
 
     //accessToken 생성
