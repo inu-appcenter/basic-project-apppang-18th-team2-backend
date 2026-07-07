@@ -2,6 +2,7 @@ package com.apppang.appgang2.domain.user.controller;
 
 import com.apppang.appgang2.domain.user.dto.LoginRequest;
 import com.apppang.appgang2.global.util.JwtUtil;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
@@ -14,13 +15,10 @@ import java.util.Map;
 
 import static org.springframework.http.HttpHeaders.SET_COOKIE;
 
+@RequiredArgsConstructor
 @RestController
 public class LoginController {
     private final JwtUtil jwtUtil;
-
-    public LoginController(JwtUtil jwtUtil){
-        this.jwtUtil = jwtUtil;
-    }
 
     @PostMapping("/api/auth/login")
     public ResponseEntity<Map<String, String>> login(@RequestBody LoginRequest request) {
