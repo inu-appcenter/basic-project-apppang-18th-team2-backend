@@ -1,13 +1,8 @@
 package com.apppang.appgang2.domain.user.entity;
 
-import com.apppang.appgang2.domain.common.BaseTimeEntity;
+import com.apppang.appgang2.global.common.BaseTimeEntity;
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-
-import java.time.LocalDateTime;
+import lombok.*;
 
 @Entity
 @Table(name="users")
@@ -41,4 +36,11 @@ public class User extends BaseTimeEntity {
     private String profileImage;   //이미지 주소 URL 저장
 
     //가입일과 수정일은 BaseTimeEntity에서 상속받아 자동 관리
+
+    @Column(nullable = false, name = "agree_required_terms")
+    private Boolean agreeRequiredTerms;
+
+    //선택이더라도 동의 또는 비동의 두 가지 상태만 존재해야하므로 Not null
+    @Column(nullable = false, name = "agree_marketing")
+    private Boolean agreeMarketing;
 }
