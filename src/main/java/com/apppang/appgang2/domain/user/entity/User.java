@@ -7,15 +7,13 @@ import lombok.*;
 @Entity
 @Table(name="users")
 @Getter
-@NoArgsConstructor
-@AllArgsConstructor
-@Builder
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class User extends BaseTimeEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "user_id")
-    private Long userId;
+    private Long id;
 
     @Column(nullable = false, unique = true)
     private String email;
@@ -24,7 +22,7 @@ public class User extends BaseTimeEntity {
     private String password;
 
     @Column(nullable = false, name = "user_name")
-    private String userName;
+    private String name;
 
     private String phone;
 
@@ -38,9 +36,20 @@ public class User extends BaseTimeEntity {
     //가입일과 수정일은 BaseTimeEntity에서 상속받아 자동 관리
 
     @Column(nullable = false, name = "agree_required_terms")
-    private Boolean agreeRequiredTerms;
+    private boolean agreeRequiredTerms;
 
-    //선택이더라도 동의 또는 비동의 두 가지 상태만 존재해야하므로 Not null
     @Column(nullable = false, name = "agree_marketing")
-    private Boolean agreeMarketing;
+    private boolean agreeMarketing;
+
+    @Builder
+    public User(String email, String password, String name, String phone, Role role, boolean agreeRequiredTerms, boolean agreeMarketing){
+        this.email = email;
+        this.password = password;
+        this.name = name;
+        this.role = role;
+        this.phone = phone;
+        this.agreeRequiredTerms = agreeRequiredTerms;
+        this.agreeMarketing = agreeMarketing;
+    }
+
 }
