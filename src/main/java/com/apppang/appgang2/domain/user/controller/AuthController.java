@@ -1,6 +1,6 @@
 package com.apppang.appgang2.domain.user.controller;
 
-import com.apppang.appgang2.domain.user.dto.SignupDTO;
+import com.apppang.appgang2.domain.user.dto.SignupRequest;
 import com.apppang.appgang2.domain.user.dto.SignupResponse;
 import com.apppang.appgang2.domain.user.service.AuthService;
 import com.apppang.appgang2.global.common.ApiResponse;
@@ -22,10 +22,10 @@ public class AuthController {
 
     //회원가입
     @PostMapping("/signup")
-    public ResponseEntity<ApiResponse<SignupResponse>> signup(@Valid @RequestBody SignupDTO signupDTO){
+    public ResponseEntity<ApiResponse<SignupResponse>> signup(@Valid @RequestBody SignupRequest signupRequest){
 
         //비즈니스 로직 완료 후 응답에 필요한 userId만 서비스로부터 받아옴
-        Long savedUserId = authService.signup(signupDTO);
+        Long savedUserId = authService.signup(signupRequest);
 
         SignupResponse signupResponse = new SignupResponse(savedUserId);
 
