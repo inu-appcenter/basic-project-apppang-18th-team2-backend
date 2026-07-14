@@ -1,26 +1,19 @@
 package com.apppang.appgang2.domain.user.entity;
 
-import com.apppang.appgang2.domain.common.BaseTimeEntity;
+import com.apppang.appgang2.global.common.BaseTimeEntity;
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-
-import java.time.LocalDateTime;
+import lombok.*;
 
 @Entity
 @Table(name="users")
 @Getter
-@NoArgsConstructor
-@AllArgsConstructor
-@Builder
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class User extends BaseTimeEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "user_id")
-    private Long userId;
+    private Long id;
 
     @Column(nullable = false, unique = true)
     private String email;
@@ -29,7 +22,7 @@ public class User extends BaseTimeEntity {
     private String password;
 
     @Column(nullable = false, name = "user_name")
-    private String userName;
+    private String name;
 
     private String phone;
 
@@ -41,4 +34,22 @@ public class User extends BaseTimeEntity {
     private String profileImage;   //이미지 주소 URL 저장
 
     //가입일과 수정일은 BaseTimeEntity에서 상속받아 자동 관리
+
+    @Column(nullable = false, name = "agree_required_terms")
+    private boolean agreeRequiredTerms;
+
+    @Column(nullable = false, name = "agree_marketing")
+    private boolean agreeMarketing;
+
+    @Builder
+    public User(String email, String password, String name, String phone, Role role, boolean agreeRequiredTerms, boolean agreeMarketing){
+        this.email = email;
+        this.password = password;
+        this.name = name;
+        this.role = role;
+        this.phone = phone;
+        this.agreeRequiredTerms = agreeRequiredTerms;
+        this.agreeMarketing = agreeMarketing;
+    }
+
 }
