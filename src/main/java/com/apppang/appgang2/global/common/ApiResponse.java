@@ -1,11 +1,12 @@
 package com.apppang.appgang2.global.common;
 
 
+import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 
 @Getter
-@AllArgsConstructor
+@AllArgsConstructor(access = AccessLevel.PRIVATE)   //success()와 fail()만 사용하도록 강제
 //공통 응답 규격 클래스
 public class ApiResponse<T> {
     private boolean success;    //API 요청 성공/실패 여부
