@@ -1,5 +1,7 @@
 package com.apppang.appgang2.domain.user.controller;
 
+import com.apppang.appgang2.domain.user.dto.FindIdRequest;
+import com.apppang.appgang2.domain.user.dto.FindIdResponse;
 import com.apppang.appgang2.domain.user.dto.SignupRequest;
 import com.apppang.appgang2.domain.user.dto.SignupResponse;
 import com.apppang.appgang2.domain.user.service.AuthService;
@@ -37,4 +39,12 @@ public class AuthController {
 
     //로그인, 따로 만들어뒀던 LoginController를 AuthController에 합칠 예정입니다.
 
+    //아이디 찾기
+    @PostMapping("/find-id")
+    public ResponseEntity<ApiResponse<FindIdResponse>> findUserId(@Valid @RequestBody FindIdRequest findIdRequest){
+        //JSON을 자바 객체로 바꾸어 그 내용을 검사하고
+        //요청받은 이름과 휴대폰 번호로 유저 아이디를 조회
+        FindIdResponse data = authService.findId(findIdRequest);
+        return ResponseEntity.ok(ApiResponse.success("아이디를 찾았습니다.",data));
+    }
 }

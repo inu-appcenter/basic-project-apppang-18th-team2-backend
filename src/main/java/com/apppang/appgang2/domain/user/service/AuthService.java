@@ -1,5 +1,7 @@
 package com.apppang.appgang2.domain.user.service;
 
+import com.apppang.appgang2.domain.user.dto.FindIdRequest;
+import com.apppang.appgang2.domain.user.dto.FindIdResponse;
 import com.apppang.appgang2.domain.user.dto.LoginRequest;
 import com.apppang.appgang2.domain.user.dto.SignupRequest;
 import com.apppang.appgang2.domain.user.entity.User;
@@ -63,6 +65,16 @@ public class AuthService {
         tokens.put("refreshToken", refreshToken);
 
         return tokens;
+    }
+
+    //아이디 찾기
+    public FindIdResponse findId(FindIdRequest request){
+        //이름과 휴대폰번호로 유저 엔티티 조회
+        User user = userRepository.findByNameAndPhone(request.getName(),request.getPhone())
+                .orElseThrow(()->new IllegalArgumentException( "일치하는 회원 정보를 찾을 수 없습니다."));
+
+        //조회된 유저의 이메일 반환
+        return new FindIdResponse(user.getEmail());
     }
 
 }
