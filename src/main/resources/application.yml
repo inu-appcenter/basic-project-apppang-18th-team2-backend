@@ -1,11 +1,10 @@
 spring:
-  profiles:
-    include: secret
   application:
     name: apppang
 
   profiles:
     active: ${SPRING_PROFILES_ACTIVE:local}
+    include: secret
 
 server:
   port: 8080
