@@ -1,8 +1,7 @@
-package com.apppang.appgang2.domain.user.controller;
+package com.apppang.apppang2.domain.user.controller;
 
-import com.apppang.appgang2.domain.user.dto.LoginRequest;
-import com.apppang.appgang2.domain.user.service.AuthService;
-import com.apppang.appgang2.global.util.JwtUtil;
+import com.apppang.apppang2.domain.user.dto.LoginRequest;
+import com.apppang.apppang2.domain.user.service.AuthService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
@@ -14,8 +13,6 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.HashMap;
 import java.util.Map;
-
-import static org.springframework.http.HttpHeaders.SET_COOKIE;
 
 @RequiredArgsConstructor
 @RestController

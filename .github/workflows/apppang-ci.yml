@@ -2,6 +2,10 @@ name: AppPang CI
 
 # develop 브랜치에 Push 될 때마다 실행
 on:
+  pull_request:
+    branches:
+      - develop
+
   push:
     branches:
       - develop

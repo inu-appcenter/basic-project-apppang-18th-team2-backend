@@ -1,13 +1,11 @@
-package com.apppang.appgang2.domain.user.entity;
+package com.apppang.apppang2.domain.user.entity;
 
-import com.apppang.appgang2.domain.common.BaseTimeEntity;
+import com.apppang.apppang2.domain.common.BaseTimeEntity;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-
-import java.time.LocalDateTime;
 
 @Entity
 @Table(name="users")
