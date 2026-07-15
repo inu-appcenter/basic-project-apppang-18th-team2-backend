@@ -23,6 +23,7 @@ public class LoginController {
     @Value("${jwt.refresh-token.expiration}")
     private long refreshTokenExpirationMs;
 
+    //로그인 API
     @PostMapping("/api/auth/login")
     public ResponseEntity<Map<String, String>> login(@RequestBody LoginRequest request) {
 

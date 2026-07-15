@@ -1,4 +1,4 @@
-package com.apppang.apppang2.domain.common;
+package com.apppang.apppang2.global.common;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.EntityListeners;
