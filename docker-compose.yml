@@ -1,22 +1,17 @@
 services:
-  mysql:
-    image: mysql:8.4
+  app:
+    image: apppang2:latest
 
-    container_name: apppang-mysql
+    container_name: apppang2
 
-    restart: always
-
-    environment:
-      MYSQL_ROOT_PASSWORD: 1234
-      MYSQL_DATABASE: apppang
-      MYSQL_USER: apppang
-      MYSQL_PASSWORD: 1234
+    build:
+      context: .
+      dockerfile: Dockerfile
 
     ports:
-      - "3306:3306"
+      - "8080:8080"
 
-    volumes:
-      - mysql-data:/var/lib/mysql
+    env_file:
+      - .env
 
-volumes:
-  mysql-data:
+    restart: unless-stopped

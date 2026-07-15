@@ -1,0 +1,72 @@
+name: AppPang CD
+
+# main 브랜치에 Push(또는 Merge) 될 때 실행
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    # GitHub에서 제공하는 Ubuntu 환경에서 실행
+    runs-on: ubuntu-latest
+
+    steps:
+
+      # 1. GitHub Repository 코드를 가져온다.
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      # 2. Java 21을 설치한다.
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      # 3. gradlew 실행 권한을 부여한다.
+      - name: Grant execute permission
+        run: chmod +x gradlew
+
+      # 4. 프로젝트를 빌드하고 테스트를 수행한다.
+      - name: Build Project
+        run: ./gradlew clean build
+
+      # 5. GitHub Secrets에 저장된 AWS 계정으로 로그인한다.
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      # 6. Private ECR에 로그인한다.
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      # 7. Docker Buildx를 설치한다.
+      # (M1 개발 환경과 관계없이 linux/amd64 이미지를 생성하기 위함)
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      # 8. Docker 이미지를 생성하여 ECR에 Push한다.
+      - name: Build and Push Docker Image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: linux/amd64
+          push: true
+          tags: |
+            ${{ secrets.ECR_REGISTRY }}/${{ secrets.ECR_REPOSITORY }}:latest
+
+      # 9. EC2에 SSH로 접속하여 deploy.sh를 실행한다.
+      - name: Deploy to EC2
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USERNAME }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            cd ~/apppang
+            ./scripts/deploy.sh
