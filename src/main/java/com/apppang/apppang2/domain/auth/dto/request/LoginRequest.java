@@ -1,4 +1,4 @@
-package com.apppang.apppang2.domain.user.dto;
+package com.apppang.apppang2.domain.auth.dto.request;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;

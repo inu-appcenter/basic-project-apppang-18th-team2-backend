@@ -1,10 +1,10 @@
-package com.apppang.apppang2.domain.user.service;
+package com.apppang.apppang2.domain.auth.service;
 
-import com.apppang.apppang2.domain.user.dto.FindIdRequest;
-import com.apppang.apppang2.domain.user.dto.FindIdResponse;
-import com.apppang.apppang2.domain.user.dto.LoginRequest;
-import com.apppang.apppang2.domain.user.dto.LoginResponse;
-import com.apppang.apppang2.domain.user.dto.SignupRequest;
+import com.apppang.apppang2.domain.auth.dto.request.FindIdRequest;
+import com.apppang.apppang2.domain.auth.dto.response.FindIdResponse;
+import com.apppang.apppang2.domain.auth.dto.request.LoginRequest;
+import com.apppang.apppang2.domain.auth.dto.response.LoginResponse;
+import com.apppang.apppang2.domain.auth.dto.request.SignupRequest;
 import com.apppang.apppang2.domain.user.entity.User;
 import com.apppang.apppang2.domain.user.repository.UserRepository;
 import com.apppang.apppang2.global.util.JwtUtil;

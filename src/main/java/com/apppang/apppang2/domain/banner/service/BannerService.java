@@ -1,6 +1,6 @@
 package com.apppang.apppang2.domain.banner.service;
 
-import com.apppang.apppang2.domain.banner.dto.BannerResponse;
+import com.apppang.apppang2.domain.banner.dto.response.BannerResponse;
 import com.apppang.apppang2.domain.banner.repository.BannerRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;

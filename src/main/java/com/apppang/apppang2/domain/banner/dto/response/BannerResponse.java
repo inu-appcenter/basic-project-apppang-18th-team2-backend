@@ -1,4 +1,4 @@
-package com.apppang.apppang2.domain.banner.dto;
+package com.apppang.apppang2.domain.banner.dto.response;
 
 import com.apppang.apppang2.domain.banner.entity.Banner;
 import lombok.Getter;
