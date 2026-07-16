@@ -1,0 +1,24 @@
+# Git
+.git
+.github
+
+# IntelliJ
+.idea
+*.iml
+
+# Gradle
+.gradle
+build
+
+# Mac
+.DS_Store
+
+# Logs
+*.log
+
+# Docker
+Dockerfile
+docker-compose.yml
+
+# Environment
+.env
