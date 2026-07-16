@@ -38,6 +38,7 @@ public class AuthController {
     @PostMapping("/signup")
     public ResponseEntity<ApiResponse<SignupResponse>> signup(@Valid @RequestBody SignupRequest signupRequest){
 
+        System.out.println("==== 회원가입 컨트롤러 진입 ====");
         //비즈니스 로직 완료 후 응답에 필요한 userId만 서비스로부터 받아옴
         Long savedUserId = authService.signup(signupRequest);
 

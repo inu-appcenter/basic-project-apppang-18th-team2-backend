@@ -5,6 +5,7 @@ import com.apppang.apppang2.domain.auth.dto.response.FindIdResponse;
 import com.apppang.apppang2.domain.auth.dto.request.LoginRequest;
 import com.apppang.apppang2.domain.auth.dto.response.LoginResponse;
 import com.apppang.apppang2.domain.auth.dto.request.SignupRequest;
+import com.apppang.apppang2.domain.user.entity.Role;
 import com.apppang.apppang2.domain.user.entity.User;
 import com.apppang.apppang2.domain.user.repository.UserRepository;
 import com.apppang.apppang2.global.util.JwtUtil;
@@ -44,6 +45,7 @@ public class AuthService {
                 .phone(signupRequest.getPhone())
                 .agreeRequiredTerms(signupRequest.isAgreeRequiredTerms())
                 .agreeMarketing(signupRequest.isAgreeMarketing())
+                .role(Role.USER) //swagger 테스트를 위해 role를 추가
                 .build();
 
         //엔티티를 실제 DB에 저장
