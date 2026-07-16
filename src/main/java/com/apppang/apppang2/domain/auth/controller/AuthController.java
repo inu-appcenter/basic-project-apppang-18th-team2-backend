@@ -1,10 +1,10 @@
-package com.apppang.apppang2.domain.user.controller;
+package com.apppang.apppang2.domain.auth.controller;
 
-import com.apppang.apppang2.domain.user.dto.FindIdRequest;
-import com.apppang.apppang2.domain.user.dto.FindIdResponse;
-import com.apppang.apppang2.domain.user.dto.SignupRequest;
-import com.apppang.apppang2.domain.user.dto.SignupResponse;
-import com.apppang.apppang2.domain.user.service.AuthService;
+import com.apppang.apppang2.domain.auth.dto.request.FindIdRequest;
+import com.apppang.apppang2.domain.auth.dto.response.FindIdResponse;
+import com.apppang.apppang2.domain.auth.dto.request.SignupRequest;
+import com.apppang.apppang2.domain.auth.dto.response.SignupResponse;
+import com.apppang.apppang2.domain.auth.service.AuthService;
 import com.apppang.apppang2.global.common.ApiResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;

@@ -1,7 +1,7 @@
-package com.apppang.apppang2.domain.user.controller;
+package com.apppang.apppang2.domain.auth.controller;
 
-import com.apppang.apppang2.domain.user.dto.LoginRequest;
-import com.apppang.apppang2.domain.user.service.AuthService;
+import com.apppang.apppang2.domain.auth.dto.request.LoginRequest;
+import com.apppang.apppang2.domain.auth.service.AuthService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
