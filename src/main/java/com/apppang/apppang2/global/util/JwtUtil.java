@@ -1,21 +1,27 @@
 package com.apppang.apppang2.global.util;
 
-import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.SignatureAlgorithm;
+import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;
 import jakarta.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.userdetails.User;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
 
 
 import java.security.Key;
 import java.util.Base64;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.Date;
 
 @Component
 public class JwtUtil {
-    //application-secret.yml에 저장한 값 불러오기
-    @Value("${jwt.access-token.expiration}")
+    //토큰 생성, 내용 검증, 유저 정보 추출
+
+    @Value("${jwt.access-token.expiration}")    //application-secret.yml에 저장한 값 불러오기
     private long accessTokenExpirationMs;
 
     @Value("${jwt.refresh-token.expiration}")
@@ -58,4 +64,45 @@ public class JwtUtil {
                 .compact();
     }
 
+    //토큰이 변조되지 않았고 만료되지 않았는지 검증
+    public boolean validateToken(String token){
+        try{
+            Jwts.parserBuilder()
+                    .setSigningKey(key)
+                    .build()
+                    .parseClaimsJws(token); //토큰 파싱 시도
+            return true;
+        } catch(io.jsonwebtoken.security.SecurityException | MalformedJwtException e){
+            //잘못된 JWT 서명이나 형식일 때
+        } catch(ExpiredJwtException e){
+            //토큰이 만료되었을 때
+        } catch(UnsupportedJwtException e){
+            //지원되지 않는 JWT 형식일 때
+        } catch(IllegalArgumentException e){
+            //토큰 내용이 비어있을 때
+        }
+        return false;
+    }
+
+    //토큰에서 내부에 저장된 데이터 추출
+    public Claims getClaims(String token){
+        return Jwts.parserBuilder()                 //JWT를 해독할 파서 생성
+                .setSigningKey(key)                 //서버가 가지고 있는 서명키 주입
+                .build()                            //주입된 키를 바탕으로 파서 객체 생성
+                .parseClaimsJws(token)              //입력된 토큰의 서명을 검증하고 해독하여 JWT 객체로 반환
+                .getBody();                         //해독에 성공한 객체에서 페이로드 영역에 해당하느 Claims 꺼내서 반환
+    }
+
+    //필터에서 유효한 토큰을 받았을 때 토큰을 기반으로 인증 객체 생성
+    public Authentication getAuthentication(String token){
+        Claims claims = getClaims(token);
+
+        //토큰에서 email 정보를 가져와서 유저 객체 생성
+        //UserDetails는 스프링 시큐리티 인터페이스
+        UserDetails principal = new User(claims.getSubject(), "", Collections.emptyList());
+
+        //인증 객체 반환
+        return new UsernamePasswordAuthenticationToken(principal, "", Collections.emptyList());
+
+    }
 }
