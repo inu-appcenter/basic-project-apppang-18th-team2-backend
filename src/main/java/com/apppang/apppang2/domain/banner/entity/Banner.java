@@ -1,4 +1,4 @@
-package com.apppang.apppang2.domain.banner;
+package com.apppang.apppang2.domain.banner.entity;
 
 import jakarta.persistence.*;
 import lombok.AccessLevel;
