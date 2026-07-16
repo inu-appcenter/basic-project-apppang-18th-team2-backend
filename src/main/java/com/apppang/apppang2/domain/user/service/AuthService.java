@@ -79,10 +79,11 @@ public class AuthService {
                 .build();
     }
     //이메일 중복 검사
-    public boolean isEmailAvailable(String email){
+    public boolean isEmailAvailable(String email) {
         //중복이라면 !true가 되어 false 리턴
         //사용가능하다면 !false가 되어 true 리턴
         return !userRepository.existsByEmail(email);
+    }
 
     //아이디 찾기
     public FindIdResponse findId(FindIdRequest request){
