@@ -1,9 +1,9 @@
-package com.apppang.appgang2.domain.user.controller;
+package com.apppang.apppang2.domain.user.controller;
 
-import com.apppang.appgang2.domain.user.dto.SignupRequest;
-import com.apppang.appgang2.domain.user.dto.SignupResponse;
-import com.apppang.appgang2.domain.user.service.AuthService;
-import com.apppang.appgang2.global.common.ApiResponse;
+import com.apppang.apppang2.domain.user.dto.SignupRequest;
+import com.apppang.apppang2.domain.user.dto.SignupResponse;
+import com.apppang.apppang2.domain.user.service.AuthService;
+import com.apppang.apppang2.global.common.ApiResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;

@@ -1,4 +1,4 @@
-package com.apppang.appgang2.domain.user.dto;
+package com.apppang.apppang2.domain.user.dto;
 
 import jakarta.validation.constraints.*;
 import lombok.AccessLevel;

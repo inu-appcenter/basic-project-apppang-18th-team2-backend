@@ -1,6 +1,6 @@
-package com.apppang.appgang2.domain.user.entity;
+package com.apppang.apppang2.domain.user.entity;
 
-import com.apppang.appgang2.global.common.BaseTimeEntity;
+import com.apppang.apppang2.global.common.BaseTimeEntity;
 import jakarta.persistence.*;
 import lombok.*;
 
