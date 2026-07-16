@@ -1,6 +1,7 @@
 package com.apppang.apppang2.domain.user.service;
 
 import com.apppang.apppang2.domain.user.dto.LoginRequest;
+import com.apppang.apppang2.domain.user.dto.LoginResponse;
 import com.apppang.apppang2.domain.user.dto.SignupRequest;
 import com.apppang.apppang2.domain.user.entity.User;
 import com.apppang.apppang2.domain.user.repository.UserRepository;
@@ -10,8 +11,6 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.HashMap;
-import java.util.Map;
 
 @RequiredArgsConstructor
 @Service
@@ -52,17 +51,29 @@ public class AuthService {
         return savedUser.getId();
     }
 
-    public Map<String, String> login(LoginRequest request){
+    public LoginResponse login(LoginRequest request) {
 
-        //임시로 토큰 생성
-        String accessToken = jwtUtil.generateAccessToken(1L, request.getEmail());
-        String refreshToken = jwtUtil.generateRefreshToken(1L);
+        //사용자 확인 (없으면 예외 발생)
+        User user = userRepository.findByEmail(request.getEmail())
+                .orElseThrow(() -> new IllegalArgumentException("가입되지 않은 이메일입니다."));
 
-        Map<String, String> tokens = new HashMap<>();
-        tokens.put("accessToken", accessToken);
-        tokens.put("refreshToken", refreshToken);
+        //비밀번호 검증 (암호화된 비번과 비교)
+        if (!bCryptPasswordEncoder.matches(request.getPassword(), user.getPassword())) {
+            throw new IllegalArgumentException("비밀번호가 일치하지 않습니다.");
+        }
 
-        return tokens;
+        //토큰 생성
+        String accessToken = jwtUtil.generateAccessToken(user.getId(), user.getEmail());
+        String refreshToken = jwtUtil.generateRefreshToken(user.getId());
+
+        //로그인 응답 DTO 생성 및 반환
+        return LoginResponse.builder()
+                .accessToken(accessToken)               //토큰에 데이터 넣기
+                .refreshToken(refreshToken)
+                .user(LoginResponse.UserInfo.builder()  //user에 UserInfo 넣기
+                        .userId(user.getId())
+                        .email(user.getEmail())
+                        .build())
+                .build();
     }
-
 }
