@@ -1,6 +1,6 @@
 package com.apppang.apppang2.domain.banner.dto;
 
-import com.apppang.apppang2.domain.banner.Banner;
+import com.apppang.apppang2.domain.banner.entity.Banner;
 import lombok.Getter;
 
 @Getter

@@ -1,5 +1,6 @@
-package com.apppang.apppang2.domain.banner;
+package com.apppang.apppang2.domain.banner.controller;
 
+import com.apppang.apppang2.domain.banner.service.BannerService;
 import com.apppang.apppang2.domain.banner.dto.BannerResponse;
 import com.apppang.apppang2.global.common.ApiResponse;
 import lombok.RequiredArgsConstructor;
