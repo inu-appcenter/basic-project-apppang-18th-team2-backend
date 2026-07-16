@@ -8,10 +8,12 @@ import java.util.Optional;
 public interface UserRepository extends JpaRepository<User, Long> {
 
     //이메일로 가입 여부 검사
-    Boolean existsByEmail(String email);
+    Boolean existsByEmailAndDeletedFalse(String email);
 
     //가입된 유저인지 확인
-    Optional<User> findByEmail(String email);
+    Optional<User> findByEmailAndDeletedFalse(String email);
     //이름과 전화번호가 일치하는 유저 찾기
-    Optional<User> findByNameAndPhone(String name, String phone);
+    Optional<User> findByNameAndPhoneAndDeletedFalse(String name, String phone);
+    // 내 정보 조회, 수정, 탈퇴용
+    Optional<User> findByIdAndDeletedFalse(Long id);
 }

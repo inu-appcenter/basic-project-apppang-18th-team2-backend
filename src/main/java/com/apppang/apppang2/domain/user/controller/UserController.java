@@ -50,4 +50,17 @@ public class UserController {
                 null
         );
     }
+
+    @Operation(summary = "회원 탈퇴")
+    @DeleteMapping("/me")
+    public ApiResponse<Void> deleteMyInfo(Authentication authentication){
+
+        Long userId = Long.parseLong(authentication.getName());
+
+        userService.deleteMyInfo(userId);
+
+        return ApiResponse.success(
+                "회원 탈퇴가 완료되었습니다."
+        );
+    }
 }

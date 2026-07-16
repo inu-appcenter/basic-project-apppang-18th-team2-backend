@@ -17,7 +17,7 @@ public class UserService {
     public MyInfoResponse getMyInfo(Long userId) {
 
         // 회원 조회
-        User user = userRepository.findById(userId)
+        User user = userRepository.findByIdAndDeletedFalse(userId)
                 .orElseThrow(() ->
                         new IllegalArgumentException("존재하지 않는 회원입니다."));
 
@@ -43,5 +43,15 @@ public class UserService {
                 request.getName(),
                 request.getPhone()
         );
+    }
+
+    @Transactional
+    public void deleteMyInfo(Long userId) {
+
+        User user = userRepository.findByIdAndDeletedFalse(userId)
+                .orElseThrow(() ->
+                        new IllegalArgumentException("존재하지 않는 회원입니다."));
+
+        user.delete();
     }
 }

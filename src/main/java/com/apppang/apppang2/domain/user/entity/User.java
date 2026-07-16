@@ -41,8 +41,11 @@ public class User extends BaseTimeEntity {
     @Column(nullable = false, name = "agree_marketing")
     private boolean agreeMarketing;
 
+    @Column(nullable = false)
+    private boolean deleted;
+
     @Builder
-    public User(String email, String password, String name, String phone, Role role, boolean agreeRequiredTerms, boolean agreeMarketing){
+    public User(String email, String password, String name, String phone, Role role, boolean agreeRequiredTerms, boolean agreeMarketing, boolean deleted){
         this.email = email;
         this.password = password;
         this.name = name;
@@ -50,11 +53,17 @@ public class User extends BaseTimeEntity {
         this.phone = phone;
         this.agreeRequiredTerms = agreeRequiredTerms;
         this.agreeMarketing = agreeMarketing;
+        this.deleted = deleted;
     }
 
     public void updateMyInfo(String name, String phone) {
         this.name = name;
         this.phone = phone;
+    }
+
+    public void delete() {
+        this.deleted = true;
+        this.email = "deleted_" + this.id + "_" + this.email;
     }
 
 }

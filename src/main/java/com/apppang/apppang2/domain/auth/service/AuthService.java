@@ -30,7 +30,7 @@ public class AuthService {
         String password = signupRequest.getPassword();
 
         //이메일 중복 검사
-        Boolean isExist = userRepository.existsByEmail(email);
+        Boolean isExist = userRepository.existsByEmailAndDeletedFalse(email);
 
         //중복일 경우 예외 처리
         if (isExist) {
@@ -45,7 +45,8 @@ public class AuthService {
                 .phone(signupRequest.getPhone())
                 .agreeRequiredTerms(signupRequest.isAgreeRequiredTerms())
                 .agreeMarketing(signupRequest.isAgreeMarketing())
-                .role(Role.USER) //swagger 테스트를 위해 role를 추가
+                .role(Role.USER) // swagger 테스트를 위해 role를 추가
+                .deleted(false) // 회원탈퇴 hard 삭제 X
                 .build();
 
         //엔티티를 실제 DB에 저장
@@ -58,7 +59,7 @@ public class AuthService {
     public LoginResponse login(LoginRequest request) {
 
         //사용자 확인 (없으면 예외 발생)
-        User user = userRepository.findByEmail(request.getEmail())
+        User user = userRepository.findByEmailAndDeletedFalse(request.getEmail())
                 .orElseThrow(() -> new IllegalArgumentException("가입되지 않은 이메일입니다."));
 
         //비밀번호 검증 (암호화된 비번과 비교)
@@ -84,13 +85,13 @@ public class AuthService {
     public boolean isEmailAvailable(String email) {
         //중복이라면 !true가 되어 false 리턴
         //사용가능하다면 !false가 되어 true 리턴
-        return !userRepository.existsByEmail(email);
+        return !userRepository.existsByEmailAndDeletedFalse(email);
     }
 
     //아이디 찾기
     public FindIdResponse findId(FindIdRequest request){
         //이름과 휴대폰번호로 유저 엔티티 조회
-        User user = userRepository.findByNameAndPhone(request.getName(),request.getPhone())
+        User user = userRepository.findByNameAndPhoneAndDeletedFalse(request.getName(),request.getPhone())
                 .orElseThrow(()->new IllegalArgumentException( "일치하는 회원 정보를 찾을 수 없습니다."));
 
         //조회된 유저의 이메일 반환
