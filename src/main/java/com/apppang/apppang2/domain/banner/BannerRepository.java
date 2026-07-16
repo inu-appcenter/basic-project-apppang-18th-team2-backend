@@ -1,4 +1,4 @@
-package com.apppang.appgang2.domain.banner;
+package com.apppang.apppang2.domain.banner;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 

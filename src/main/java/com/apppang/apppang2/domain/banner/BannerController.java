@@ -1,9 +1,8 @@
-package com.apppang.appgang2.domain.banner;
+package com.apppang.apppang2.domain.banner;
 
-import com.apppang.appgang2.domain.banner.dto.BannerResponse;
-import com.apppang.appgang2.global.common.ApiResponse;
+import com.apppang.apppang2.domain.banner.dto.BannerResponse;
+import com.apppang.apppang2.global.common.ApiResponse;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
