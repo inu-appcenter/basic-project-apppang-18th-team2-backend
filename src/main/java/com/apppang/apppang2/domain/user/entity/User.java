@@ -52,4 +52,9 @@ public class User extends BaseTimeEntity {
         this.agreeMarketing = agreeMarketing;
     }
 
+    public void updateMyInfo(String name, String phone) {
+        this.name = name;
+        this.phone = phone;
+    }
+
 }

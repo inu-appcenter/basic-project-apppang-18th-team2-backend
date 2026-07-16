@@ -1,14 +1,14 @@
 package com.apppang.apppang2.domain.user.controller;
 
+import com.apppang.apppang2.domain.user.dto.request.UpdateMyInfoRequest;
 import com.apppang.apppang2.domain.user.dto.response.MyInfoResponse;
 import com.apppang.apppang2.domain.user.service.UserService;
 import com.apppang.apppang2.global.common.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.security.core.Authentication;
 
 @Tag(name = "USER")
@@ -33,5 +33,21 @@ public class UserController {
                 response
         );
 
+    }
+
+    @Operation(summary = "회원정보 수정")
+    @PatchMapping("/me")
+    public ApiResponse<Void> updateMyInfo(
+            Authentication authentication,
+            @Valid @RequestBody UpdateMyInfoRequest request) {
+
+        Long userId = Long.parseLong(authentication.getName());
+
+        userService.updateMyInfo(userId, request);
+
+        return ApiResponse.success(
+                "회원 정보가 수정되었습니다.",
+                null
+        );
     }
 }

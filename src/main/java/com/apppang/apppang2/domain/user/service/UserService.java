@@ -1,5 +1,6 @@
 package com.apppang.apppang2.domain.user.service;
 
+import com.apppang.apppang2.domain.user.dto.request.UpdateMyInfoRequest;
 import com.apppang.apppang2.domain.user.dto.response.MyInfoResponse;
 import com.apppang.apppang2.domain.user.entity.User;
 import com.apppang.apppang2.domain.user.repository.UserRepository;
@@ -28,5 +29,19 @@ public class UserService {
                 .phone(user.getPhone())
                 .profileImage(user.getProfileImage())
                 .build();
+    }
+
+    @Transactional
+    public void updateMyInfo(Long userId,
+                             UpdateMyInfoRequest request) {
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() ->
+                        new IllegalArgumentException("존재하지 않는 회원입니다."));
+
+        user.updateMyInfo(
+                request.getName(),
+                request.getPhone()
+        );
     }
 }
