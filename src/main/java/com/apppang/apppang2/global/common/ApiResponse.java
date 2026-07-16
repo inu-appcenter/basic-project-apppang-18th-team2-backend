@@ -1,4 +1,4 @@
-package com.apppang.appgang2.global.common;
+package com.apppang.apppang2.global.common;
 
 
 import lombok.AccessLevel;

@@ -1,8 +1,7 @@
-package com.apppang.appgang2.domain.user.dto;
+package com.apppang.apppang2.domain.user.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
-import lombok.NoArgsConstructor;
 
 @Getter
 @AllArgsConstructor

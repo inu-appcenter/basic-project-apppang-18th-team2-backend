@@ -1,4 +1,4 @@
-package com.apppang.appgang2.domain.user.entity;
+package com.apppang.apppang2.domain.user.entity;
 
 
 public enum Role {
