@@ -11,6 +11,11 @@ public interface UserRepository extends JpaRepository<User, Long> {
     Boolean existsByEmailAndDeletedFalse(String email);
 
     //가입된 유저인지 확인
+    Optional<User> findByEmail(String email);
+
+    //AddressService에서 주소 추가를 위해 Id로 가입된 유저인지 확인
+    Optional<User> findById(Long userId);
+
     Optional<User> findByEmailAndDeletedFalse(String email);
     //이름과 전화번호가 일치하는 유저 찾기
     Optional<User> findByNameAndPhoneAndDeletedFalse(String name, String phone);
