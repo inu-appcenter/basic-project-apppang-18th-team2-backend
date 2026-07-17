@@ -1,6 +1,7 @@
 package com.apppang.apppang2.domain.auth.controller;
 
 import com.apppang.apppang2.domain.auth.dto.request.FindIdRequest;
+import com.apppang.apppang2.domain.auth.dto.response.EmailCheckResponse;
 import com.apppang.apppang2.domain.auth.dto.response.FindIdResponse;
 import com.apppang.apppang2.domain.auth.dto.request.SignupRequest;
 import com.apppang.apppang2.domain.auth.dto.response.SignupResponse;
@@ -17,10 +18,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 @Tag(name = "Auth")
 @RestController
@@ -85,4 +83,21 @@ public class AuthController {
         FindIdResponse data = authService.findId(findIdRequest);
         return ResponseEntity.ok(ApiResponse.success("아이디를 찾았습니다.",data));
     }
+
+    //이메일 중복 확인
+    @Operation(summary = "이메일 중복확인")
+    @GetMapping("/email-check")
+    //@RequestParam : 쿼리 파라미터로 전달된 값을 String email에 매핑
+    public ResponseEntity<ApiResponse<EmailCheckResponse>> checkEmail(@RequestParam String email){
+
+        boolean isAvailable = authService.isEmailAvailable(email);
+
+        //boolean 값을 JSON 형식으로 응답하기 위해 객체 생성
+        EmailCheckResponse data = new EmailCheckResponse(isAvailable);
+
+        String message = isAvailable ? "사용 가능한 이메일입니다." : "이미 사용 중인 이메일입니다.";
+
+        return ResponseEntity.ok(ApiResponse.success(message, data));
+    }
+
 }
