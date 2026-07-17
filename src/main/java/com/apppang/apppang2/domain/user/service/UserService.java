@@ -4,7 +4,9 @@ import com.apppang.apppang2.domain.user.dto.request.UpdateMyInfoRequest;
 import com.apppang.apppang2.domain.user.dto.response.MyInfoResponse;
 import com.apppang.apppang2.domain.user.entity.User;
 import com.apppang.apppang2.domain.user.repository.UserRepository;
+import com.apppang.apppang2.global.exception.CustomException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -19,7 +21,7 @@ public class UserService {
         // 회원 조회
         User user = userRepository.findByIdAndDeletedFalse(userId)
                 .orElseThrow(() ->
-                        new IllegalArgumentException("존재하지 않는 회원입니다."));
+                        new CustomException(HttpStatus.NOT_FOUND, "존재하지 않는 회원입니다."));
 
         // DTO 변환
         return MyInfoResponse.builder()
@@ -35,9 +37,9 @@ public class UserService {
     public void updateMyInfo(Long userId,
                              UpdateMyInfoRequest request) {
 
-        User user = userRepository.findById(userId)
+        User user = userRepository.findByIdAndDeletedFalse(userId)
                 .orElseThrow(() ->
-                        new IllegalArgumentException("존재하지 않는 회원입니다."));
+                        new CustomException(HttpStatus.NOT_FOUND, "존재하지 않는 회원입니다."));
 
         user.updateMyInfo(
                 request.getName(),
@@ -50,7 +52,7 @@ public class UserService {
 
         User user = userRepository.findByIdAndDeletedFalse(userId)
                 .orElseThrow(() ->
-                        new IllegalArgumentException("존재하지 않는 회원입니다."));
+                        new CustomException(HttpStatus.NOT_FOUND, "존재하지 않는 회원입니다."));
 
         user.delete();
     }

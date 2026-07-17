@@ -8,8 +8,10 @@ import com.apppang.apppang2.domain.auth.dto.request.SignupRequest;
 import com.apppang.apppang2.domain.user.entity.Role;
 import com.apppang.apppang2.domain.user.entity.User;
 import com.apppang.apppang2.domain.user.repository.UserRepository;
+import com.apppang.apppang2.global.exception.CustomException;
 import com.apppang.apppang2.global.util.JwtUtil;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -34,7 +36,7 @@ public class AuthService {
 
         //중복일 경우 예외 처리
         if (isExist) {
-            throw new IllegalArgumentException("이미 사용중인 이메일입니다.");
+            throw new CustomException(HttpStatus.CONFLICT, "이미 사용중인 이메일입니다.");
         }
 
         //받은 DTO를 User 엔티티 형태로 옮겨담는 과정
@@ -60,11 +62,11 @@ public class AuthService {
 
         //사용자 확인 (없으면 예외 발생)
         User user = userRepository.findByEmailAndDeletedFalse(request.getEmail())
-                .orElseThrow(() -> new IllegalArgumentException("가입되지 않은 이메일입니다."));
+                .orElseThrow(() -> new CustomException(HttpStatus.UNAUTHORIZED, "가입되지 않은 이메일입니다."));
 
         //비밀번호 검증 (암호화된 비번과 비교)
         if (!bCryptPasswordEncoder.matches(request.getPassword(), user.getPassword())) {
-            throw new IllegalArgumentException("비밀번호가 일치하지 않습니다.");
+            throw new CustomException(HttpStatus.UNAUTHORIZED, "이메일 또는 비밀번호가 올바르지 않습니다.");
         }
 
         //토큰 생성
@@ -92,7 +94,7 @@ public class AuthService {
     public FindIdResponse findId(FindIdRequest request){
         //이름과 휴대폰번호로 유저 엔티티 조회
         User user = userRepository.findByNameAndPhoneAndDeletedFalse(request.getName(),request.getPhone())
-                .orElseThrow(()->new IllegalArgumentException( "일치하는 회원 정보를 찾을 수 없습니다."));
+                .orElseThrow(()->new CustomException(HttpStatus.NOT_FOUND, "일치하는 회원 정보를 찾을 수 없습니다."));
 
         //조회된 유저의 이메일 반환
         return new FindIdResponse(user.getEmail());
