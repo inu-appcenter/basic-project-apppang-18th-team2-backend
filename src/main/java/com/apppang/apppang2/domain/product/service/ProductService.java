@@ -1,5 +1,6 @@
 package com.apppang.apppang2.domain.product.service;
 
+import com.apppang.apppang2.domain.product.dto.response.ProductDetailResponse;
 import com.apppang.apppang2.domain.product.dto.response.ProductListResponse;
 import com.apppang.apppang2.domain.product.dto.response.ProductResponse;
 import com.apppang.apppang2.domain.product.entity.Product;
@@ -52,5 +53,13 @@ public class ProductService {
             // 허용 외 값 오류처리
             default -> throw new CustomException(HttpStatus.BAD_REQUEST, "잘못된 조회 조건입니다.");
         };
+    }
+
+    public ProductDetailResponse getProduct(Long productId){
+        Product product = productRepository.findById(productId)
+                .orElseThrow(() ->
+                        new CustomException(HttpStatus.NOT_FOUND, "상품을 찾을 수 없습니다."));
+
+        return new ProductDetailResponse(product);
     }
 }

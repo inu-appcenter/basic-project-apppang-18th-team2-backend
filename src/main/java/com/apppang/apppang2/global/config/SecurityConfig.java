@@ -54,7 +54,7 @@ public class SecurityConfig {
                         .requestMatchers(
                                 "/api/auth/**",
                                 "/api/banners",
-                                "/api/products"
+                                "/api/products/**"
                         ).permitAll()
                         //그 외의 나머지 경로들은 모두 로그인해야 접근 가능
                         .anyRequest().authenticated()
