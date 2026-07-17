@@ -1,4 +1,4 @@
-package com.apppang.apppang2.domain.user.dto;
+package com.apppang.apppang2.domain.auth.dto.response;
 
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
