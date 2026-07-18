@@ -1,5 +1,6 @@
 package com.apppang.apppang2.global.config;
 
+import com.apppang.apppang2.global.security.CustomAuthenticationEntryPoint;
 import com.apppang.apppang2.global.security.filter.JwtAuthenticationFilter;
 import com.apppang.apppang2.global.util.JwtUtil;
 import lombok.RequiredArgsConstructor;
@@ -24,6 +25,7 @@ import java.util.List;
 public class SecurityConfig {
 
     private final JwtUtil jwtUtil;
+    private final CustomAuthenticationEntryPoint customAuthenticationEntryPoint;
 
     //비밀번호 암호화
     @Bean
@@ -52,6 +54,8 @@ public class SecurityConfig {
                 .formLogin(form -> form.disable())
                 .httpBasic(basic->basic.disable())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))   //세션 사용안함
+                //비로그인 상태로 인증 필요 경로 접근 시 401 + 공통 JSON 응답 (미등록 시 기본값인 403 빈 응답이 나감)
+                .exceptionHandling(ex -> ex.authenticationEntryPoint(customAuthenticationEntryPoint))
                 //필터 추가
                 .addFilterBefore(new JwtAuthenticationFilter(jwtUtil), UsernamePasswordAuthenticationFilter.class)
                 //요청 권한 설정
