@@ -1,5 +1,6 @@
-package com.apppang.apppang2.domain.address;
+package com.apppang.apppang2.domain.address.entity;
 
+import com.apppang.apppang2.domain.address.dto.request.AddressUpdateRequest;
 import com.apppang.apppang2.domain.user.entity.User;
 import jakarta.persistence.*;
 import lombok.*;
@@ -36,5 +37,13 @@ public class Address {
 
     public void updateDefault(boolean isDefault){
         this.isDefault = isDefault;
+    }
+
+    //배송지 정보 수정 메서드
+    public void updateAddress(AddressUpdateRequest updateRequest){
+        this.receiver = updateRequest.getReceiver();
+        this.receiverPhone = updateRequest.getReceiverPhone();
+        this.roadAddress = updateRequest.getRoadAddress();
+        this.detailAddress = updateRequest.getDetailAddress();
     }
 }

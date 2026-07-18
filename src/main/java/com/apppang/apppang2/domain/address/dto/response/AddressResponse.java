@@ -1,4 +1,4 @@
-package com.apppang.apppang2.domain.address.dto;
+package com.apppang.apppang2.domain.address.dto.response;
 
 import com.apppang.apppang2.domain.address.entity.Address;
 import lombok.Builder;
