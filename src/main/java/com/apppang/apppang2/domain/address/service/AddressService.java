@@ -3,6 +3,7 @@ package com.apppang.apppang2.domain.address.service;
 import com.apppang.apppang2.domain.address.dto.request.AddressRequest;
 import com.apppang.apppang2.domain.address.dto.request.AddressUpdateRequest;
 import com.apppang.apppang2.domain.address.dto.response.AddressResponse;
+import com.apppang.apppang2.domain.address.dto.response.AddressUpdateDefaultResponse;
 import com.apppang.apppang2.domain.address.entity.Address;
 import com.apppang.apppang2.domain.address.repository.AddressRepository;
 import com.apppang.apppang2.domain.user.entity.User;
@@ -78,6 +79,34 @@ public class AddressService {
         //엔티티의 데이터 업데이트(메서드가 종료되는 시점에 @Transactional이 엔티티 값 변경 감지하고 자동으로 DB 업데이트)
         address.updateAddress(updateRequest);
 
+    }
+
+    //기본배송지 수정
+    @Transactional
+    public AddressUpdateDefaultResponse updateDefaultAddress(Long userId, Long addressId){
+
+        //기본 배송지로 만들 타겟 배송지 조회
+        Address targetAddress = addressRepository.findById(addressId)
+                .orElseThrow(()->new IllegalArgumentException("존재하지 않는 배송지입니다."));
+
+        //배송지가 로그인한 유저의 것이 맞는지 권한 확인
+        if(!targetAddress.getUser().getId().equals(userId)){
+            log.warn("권한 없는 배송지 접근 userId : {}, addressId : {}",userId, addressId);
+            throw new IllegalArgumentException("수정권한이 없습니다.");
+        }
+
+        //기존에 기본배송지가 있다면 일반배송지로 변경
+        addressRepository.findByUserIdAndIsDefaultTrue(userId)
+                //기존 기본배송지 객체가 존재한다면 oldDefault 이름을 붙여 객체값 변경
+                .ifPresent(oldDefault->{
+                    oldDefault.updateDefault(false);
+                });
+
+        //새로운 타겟 배송지를 기본 배송지로 설정
+        targetAddress.updateDefault(true);
+        log.info("기본 배송지 변경 완료 userId : {}, 새로운 기본 addressId : {}",userId, addressId);
+
+        return new AddressUpdateDefaultResponse(targetAddress.getId(), targetAddress.isDefault());
     }
 
 }
