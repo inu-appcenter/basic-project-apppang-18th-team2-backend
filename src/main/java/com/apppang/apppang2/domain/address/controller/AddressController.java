@@ -3,9 +3,11 @@ package com.apppang.apppang2.domain.address.controller;
 import com.apppang.apppang2.domain.address.dto.request.AddressRequest;
 import com.apppang.apppang2.domain.address.dto.request.AddressUpdateRequest;
 import com.apppang.apppang2.domain.address.dto.response.AddressResponse;
+import com.apppang.apppang2.domain.address.dto.response.AddressUpdateDefaultResponse;
 import com.apppang.apppang2.domain.address.service.AddressService;
 import com.apppang.apppang2.global.common.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -16,6 +18,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+@Tag(name = "ADDRESS")
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/addresses")
@@ -60,5 +63,15 @@ public class AddressController {
         addressService.updateAddress(userId, addressId, updateRequest);
 
         return ResponseEntity.ok(ApiResponse.success("배송지 정보가 수정되었습니다."));
+    }
+
+    //기본배송지 변경
+    @Operation(summary = "배송지 수정", description = "기본 배송지를 수정합니다.")
+    @PatchMapping("/{addressId}/default")
+    public ResponseEntity<ApiResponse<AddressUpdateDefaultResponse>> updateDefault(@AuthenticationPrincipal Long userId, @PathVariable Long addressId){
+
+        AddressUpdateDefaultResponse data = addressService.updateDefaultAddress(userId, addressId);
+
+        return ResponseEntity.ok(ApiResponse.success("기본 배송지가 변경되었습니다.", data));
     }
 }
