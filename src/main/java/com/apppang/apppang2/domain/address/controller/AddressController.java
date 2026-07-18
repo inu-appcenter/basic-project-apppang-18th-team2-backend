@@ -74,4 +74,14 @@ public class AddressController {
 
         return ResponseEntity.ok(ApiResponse.success("기본 배송지가 변경되었습니다.", data));
     }
+
+    //배송지 삭제
+    @Operation(summary = "배송지 삭제")
+    @DeleteMapping("/{addressId}")
+    public ResponseEntity<ApiResponse<String>> deleteAddress(@AuthenticationPrincipal Long userId, @PathVariable Long addressId){
+
+        addressService.deleteAddress(userId, addressId);
+
+        return ResponseEntity.ok(ApiResponse.success("배송지가 삭제되었습니다."));
+    }
 }
