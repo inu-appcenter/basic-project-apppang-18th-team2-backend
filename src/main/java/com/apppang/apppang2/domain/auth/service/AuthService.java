@@ -5,24 +5,27 @@ import com.apppang.apppang2.domain.auth.dto.response.FindIdResponse;
 import com.apppang.apppang2.domain.auth.dto.request.LoginRequest;
 import com.apppang.apppang2.domain.auth.dto.response.LoginResponse;
 import com.apppang.apppang2.domain.auth.dto.request.SignupRequest;
+import com.apppang.apppang2.domain.auth.repository.RefreshTokenRepository;
 import com.apppang.apppang2.domain.user.entity.Role;
 import com.apppang.apppang2.domain.user.entity.User;
 import com.apppang.apppang2.domain.user.repository.UserRepository;
 import com.apppang.apppang2.global.exception.CustomException;
 import com.apppang.apppang2.global.util.JwtUtil;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-
+@Slf4j
 @RequiredArgsConstructor
 @Service
 public class AuthService {
     private final JwtUtil jwtUtil;
     private final UserRepository userRepository;
     private final BCryptPasswordEncoder bCryptPasswordEncoder;
+    private final RefreshTokenRepository refreshTokenRepository;
 
 
     //컨트롤러의 최종 응답을 위해 DB에 저장된 후 발급된 userId(Long)를 반환
@@ -83,6 +86,7 @@ public class AuthService {
                         .build())
                 .build();
     }
+
     //이메일 중복 검사
     public boolean isEmailAvailable(String email) {
         //중복이라면 !true가 되어 false 리턴
@@ -98,6 +102,18 @@ public class AuthService {
 
         //조회된 유저의 이메일 반환
         return new FindIdResponse(user.getEmail());
+    }
+
+    @Transactional      //삭제하는 작업이므로 안전하게 실행
+    //로그아웃
+    public void logout(Long userId){
+        //유저Id를 기준으로 DB에 저장된 Refresh Token을 삭제
+        try{
+            refreshTokenRepository.deleteByUserId(userId);
+            log.info("유저 {}의 RefreshToken을 성공적으로 삭제했습니다.", userId);
+        }catch(Exception e){
+            log.error("유저 {}의 RefreshToken 삭제 중 오류 발생: {}", userId, e.getMessage());
+        }
     }
 
 }

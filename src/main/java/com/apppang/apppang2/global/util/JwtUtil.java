@@ -13,7 +13,6 @@ import org.springframework.stereotype.Component;
 
 import java.security.Key;
 import java.util.Base64;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
 
@@ -95,14 +94,14 @@ public class JwtUtil {
 
     //필터에서 유효한 토큰을 받았을 때 토큰을 기반으로 인증 객체 생성
     public Authentication getAuthentication(String token){
+        //DB 조회없이 토큰에서 뽑은 userId만 SecurityContext에 넣도록 최적화
         Claims claims = getClaims(token);
 
-        //토큰에서 email 정보를 가져와서 유저 객체 생성
-        //UserDetails는 스프링 시큐리티 인터페이스
-        UserDetails principal = new User(claims.getSubject(), "", Collections.emptyList());
+        //토큰 생성 시 Subject에 담았던 userId(String)를 꺼내서 Long으로 변환
+        Long userId = Long.valueOf(claims.getSubject());
 
-        //인증 객체 반환
-        return new UsernamePasswordAuthenticationToken(principal, "", Collections.emptyList());
+        //변환한 userId를 스프링 시큐리티 신분증으로 등록
+        return new UsernamePasswordAuthenticationToken(userId, "", Collections.emptyList());
 
     }
 }
