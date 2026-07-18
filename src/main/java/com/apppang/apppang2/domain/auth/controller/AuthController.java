@@ -18,6 +18,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 @Tag(name = "Auth")
@@ -36,7 +37,6 @@ public class AuthController {
     @PostMapping("/signup")
     public ResponseEntity<ApiResponse<SignupResponse>> signup(@Valid @RequestBody SignupRequest signupRequest){
 
-        System.out.println("==== 회원가입 컨트롤러 진입 ====");
         //비즈니스 로직 완료 후 응답에 필요한 userId만 서비스로부터 받아옴
         Long savedUserId = authService.signup(signupRequest);
 
@@ -100,4 +100,14 @@ public class AuthController {
         return ResponseEntity.ok(ApiResponse.success(message, data));
     }
 
+    @Operation(summary = "로그아웃")
+    @PostMapping("/logout")
+    public ResponseEntity<ApiResponse<String>> logout(@AuthenticationPrincipal Long userId){
+        //JwtUtil이 SpringContext에 넣어둔 결과를 꺼내서 userId에 주입
+
+        //유저Id 기준으로 DB의 Refresh Token을 삭제
+        authService.logout(userId);
+
+        return ResponseEntity.ok(ApiResponse.success("로그아웃되었습니다."));
+    }
 }
