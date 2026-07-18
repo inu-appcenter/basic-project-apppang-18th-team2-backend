@@ -6,6 +6,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.util.List;
+import java.util.Optional;
 
 public interface WishlistRepository extends JpaRepository<Wishlist, Long> {
 
@@ -15,5 +16,8 @@ public interface WishlistRepository extends JpaRepository<Wishlist, Long> {
 
     //특정 사용자가 해당 상품을 이미 찜했는지 확인
     boolean existsByUserIdAndProductId(Long userId, Long productId);
+
+    //유저ID와 상품ID로 찜 엔티티 찾기
+    Optional<Wishlist> findByUserIdAndProductId(Long userId, Long productId);
 
 }

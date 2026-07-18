@@ -13,6 +13,7 @@ import com.apppang.apppang2.global.exception.CustomException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -39,7 +40,7 @@ public class WishlistService {
         return new WishlistResponse(productResponses);
     }
 
-
+    //찜 추가
     public void addWishlist(Long userId, Long productId){
         //해당 사용자가 이미 찜한 상품인지 중복 체크
         if(wishlistRepository.existsByUserIdAndProductId(userId, productId)){
@@ -58,6 +59,17 @@ public class WishlistService {
                 .build();
 
         wishlistRepository.save(wishlist);
+    }
+
+    //찜 삭제
+    @Transactional
+    public void deleteWishlist(Long userId, Long productId){
+
+        //찜 목록에 해당 데이터가 있는지 조회
+        Wishlist wishlist = wishlistRepository.findByUserIdAndProductId(userId, productId)
+                .orElseThrow(()->new CustomException(HttpStatus.NOT_FOUND, "찜한 상품이 존재하지 않습니다."));
+
+        wishlistRepository.delete(wishlist);       //상속받고 있는 JpaRepository가 기본적으로 제공하는 메서드
     }
 
 }
