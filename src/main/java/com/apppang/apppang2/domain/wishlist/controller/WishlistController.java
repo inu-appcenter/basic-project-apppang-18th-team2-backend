@@ -29,10 +29,10 @@ public class WishlistController {
 
     //찜 추가
     @Operation(summary = "찜 추가")
-    @PostMapping("/{productId}")
-    public ResponseEntity<ApiResponse<Void>> addWishlist(@AuthenticationPrincipal Long userId, @PathVariable Long productId){
+    @PostMapping
+    public ResponseEntity<ApiResponse<Void>> addWishlist(@AuthenticationPrincipal Long userId, @RequestBody WishlistRequest request){
 
-        wishlistService.addWishlist(userId, productId);
+        wishlistService.addWishlist(userId, request.getProductId());
 
         return ResponseEntity
                 .status(HttpStatus.CREATED)
@@ -41,9 +41,9 @@ public class WishlistController {
 
     //찜 삭제
     @Operation(summary = "찜 삭제")
-    @DeleteMapping("/{productId}")
-    public ResponseEntity<ApiResponse<Void>> deleteWishlist(@AuthenticationPrincipal Long userId, @PathVariable Long productId){
-        wishlistService.deleteWishlist(userId, productId);  //서비스 삭제 로직 호출
+    @DeleteMapping
+    public ResponseEntity<ApiResponse<Void>> deleteWishlist(@AuthenticationPrincipal Long userId, @RequestBody WishlistRequest request){
+        wishlistService.deleteWishlist(userId, request.getProductId());  //서비스 삭제 로직 호출
         return ResponseEntity.ok(ApiResponse.success("찜 목록에서 삭제되었습니다."));
     }
 }
