@@ -38,4 +38,12 @@ public class WishlistController {
                 .status(HttpStatus.CREATED)
                 .body(ApiResponse.success("찜 목록에 추가되었습니다."));
     }
+
+    //찜 삭제
+    @Operation(summary = "찜 삭제")
+    @DeleteMapping("/{productId}")
+    public ResponseEntity<ApiResponse<Void>> deleteWishlist(@AuthenticationPrincipal Long userId, @PathVariable Long productId){
+        wishlistService.deleteWishlist(userId, productId);  //서비스 삭제 로직 호출
+        return ResponseEntity.ok(ApiResponse.success("찜 목록에서 삭제되었습니다."));
+    }
 }
