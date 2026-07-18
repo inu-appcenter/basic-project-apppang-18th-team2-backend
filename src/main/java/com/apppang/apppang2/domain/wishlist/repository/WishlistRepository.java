@@ -13,4 +13,7 @@ public interface WishlistRepository extends JpaRepository<Wishlist, Long> {
     @Query("SELECT w FROM Wishlist w JOIN FETCH w.product WHERE w.user.id = :userId")
     List<Wishlist> findAllByUserIdWithProduct(@Param("userId") Long userId);    //쿼리의 userId와 매핑하겠다고 선언
 
+    //특정 사용자가 해당 상품을 이미 찜했는지 확인
+    boolean existsByUserIdAndProductId(Long userId, Long productId);
+
 }
