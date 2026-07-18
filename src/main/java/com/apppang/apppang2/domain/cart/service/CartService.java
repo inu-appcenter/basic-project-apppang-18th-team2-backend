@@ -22,6 +22,7 @@ public class CartService {
     private final CartRepository cartRepository;
     private final ProductRepository productRepository;
 
+    //장바구니 조회
     public CartResponse getCartItems(Long userId){
         List<CartItemResponse> items = cartRepository.findAllWithProductByUserId(userId).stream()
                 .map(CartItemResponse::new)
@@ -80,5 +81,15 @@ public class CartService {
         cart.updateQuantity(quantity);      //변경 감지로 UPDATE 자동 실행
 
         return new CartQuantityResponse(cart.getQuantity());
+    }
+
+    //장바구니 삭제
+    @Transactional
+    public void deleteCartItem(Long userId, Long cartItemId){
+        //내 장바구니 조회 — 없거나 남의 것이면 404
+        Cart cart = cartRepository.findByIdAndUserId(cartItemId, userId)
+                .orElseThrow(() -> new CustomException(HttpStatus.NOT_FOUND, "상품을 찾을 수 없습니다."));
+
+        cartRepository.delete(cart);
     }
 }

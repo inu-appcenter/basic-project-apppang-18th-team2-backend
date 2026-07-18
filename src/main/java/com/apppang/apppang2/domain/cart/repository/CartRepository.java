@@ -17,6 +17,6 @@ public interface CartRepository extends JpaRepository<Cart, Long> {
     //유저가 이 상품을 이미 담았는지 확인
     Optional<Cart> findByUserIdAndProductId(Long userId, Long productId);
 
-    //내 장바구니 조회
+    //내 장바구니 조회, 수량조절,삭제용
     Optional<Cart> findByIdAndUserId(Long id, Long userId);
 }

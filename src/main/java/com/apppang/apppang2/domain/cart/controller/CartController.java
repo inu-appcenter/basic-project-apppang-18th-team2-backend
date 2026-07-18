@@ -54,4 +54,15 @@ public class CartController {
 
         return ApiResponse.success("수량이 변경되었습니다.", response);
     }
+
+    @Operation(summary = "장바구니 삭제")
+    @DeleteMapping("/api/cart/items/{cartItemId}")
+    public ApiResponse<Void> deleteCartItem(Authentication authentication,
+                                            @PathVariable Long cartItemId){
+        Long userId = Long.parseLong(authentication.getName());
+
+        cartService.deleteCartItem(userId, cartItemId);
+
+        return ApiResponse.success("장바구니 상품이 삭제되었습니다.");
+    }
 }
