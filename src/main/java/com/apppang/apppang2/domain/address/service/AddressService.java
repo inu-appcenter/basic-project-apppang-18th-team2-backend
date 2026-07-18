@@ -8,8 +8,10 @@ import com.apppang.apppang2.domain.address.entity.Address;
 import com.apppang.apppang2.domain.address.repository.AddressRepository;
 import com.apppang.apppang2.domain.user.entity.User;
 import com.apppang.apppang2.domain.user.repository.UserRepository;
+import com.apppang.apppang2.global.exception.CustomException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -36,7 +38,7 @@ public class AddressService {
 
         //유저 조회
         User user = userRepository.findById(userId)
-                .orElseThrow(()->new IllegalArgumentException("유저를 찾을 수 없습니다."));
+                .orElseThrow(()->new CustomException(HttpStatus.NOT_FOUND, "유저를 찾을 수 없습니다."));
 
 
         //새로 추가할 주소가 기본배송지일 경우 기존에 등록된 기본배송지를 해제
@@ -66,14 +68,14 @@ public class AddressService {
 
         //addressId로 수정할 배송지를 DB에서 찾음
         Address address = addressRepository.findById(addressId)
-                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 배송지입니다."));
+                .orElseThrow(() -> new CustomException(HttpStatus.NOT_FOUND, "존재하지 않는 배송지입니다."));
 
         log.info("토큰에서 뽑은 로그인 유저 Id : {}", userId);
         log.info("DB에 저장된 배송지 주인 Id : {}", address.getUser().getId());
 
         //배송지가 로그인한 유저의 것이 맞는지 권한 확인
         if(!address.getUser().getId().equals(userId)){
-            throw new IllegalArgumentException("수정권한이 없습니다.");
+            throw new CustomException(HttpStatus.FORBIDDEN, "수정권한이 없습니다.");
         }
 
         //엔티티의 데이터 업데이트(메서드가 종료되는 시점에 @Transactional이 엔티티 값 변경 감지하고 자동으로 DB 업데이트)
@@ -87,12 +89,12 @@ public class AddressService {
 
         //기본 배송지로 만들 타겟 배송지 조회
         Address targetAddress = addressRepository.findById(addressId)
-                .orElseThrow(()->new IllegalArgumentException("존재하지 않는 배송지입니다."));
+                .orElseThrow(()->new CustomException(HttpStatus.NOT_FOUND,"존재하지 않는 배송지입니다."));
 
         //배송지가 로그인한 유저의 것이 맞는지 권한 확인
         if(!targetAddress.getUser().getId().equals(userId)){
             log.warn("권한 없는 배송지 접근 userId : {}, addressId : {}",userId, addressId);
-            throw new IllegalArgumentException("수정권한이 없습니다.");
+            throw new CustomException(HttpStatus.FORBIDDEN, "수정권한이 없습니다.");
         }
 
         //기존에 기본배송지가 있다면 일반배송지로 변경
@@ -107,6 +109,27 @@ public class AddressService {
         log.info("기본 배송지 변경 완료 userId : {}, 새로운 기본 addressId : {}",userId, addressId);
 
         return new AddressUpdateDefaultResponse(targetAddress.getId(), targetAddress.isDefault());
+    }
+
+    //배송지 삭제
+    public void deleteAddress(Long userId, Long addressId){
+        //삭제할 배송지 조회
+        Address address = addressRepository.findById(addressId)
+                .orElseThrow(()->new CustomException(HttpStatus.BAD_REQUEST, "존재하지 않는 배송지입니다."));
+
+        //배송지가 로그인한 유저의 것이 맞는지 권한 확인
+        if(!address.getUser().getId().equals(userId)){
+            log.warn("권한 없는 배송지 접근 userId : {}, addressId : {}",userId, addressId);
+            throw new CustomException(HttpStatus.FORBIDDEN,"삭제권한이 없습니다.");
+        }
+
+        //기본배송지일 경우 삭제할 수 없음
+        if(address.isDefault()){
+            throw new CustomException(HttpStatus.CONFLICT, "기본 배송지는 삭제할 수 없습니다.");
+        }
+
+        addressRepository.delete(address);      //상속받은 JpaRepository 안에 delete 메서드 구현되어있음
+        log.info("배송지 삭제 완료");
     }
 
 }
