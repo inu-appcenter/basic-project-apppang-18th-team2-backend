@@ -16,7 +16,8 @@ public class ProductResponse {
     private int reviewCount;
     private boolean wish;
 
-    public ProductResponse(Product product){
+    //찜 여부를 직접 받을 수 있는 새로운 생성자 추가
+    public ProductResponse(Product product, boolean isWish){
         this.productId = product.getId();
         this.name = product.getName();
         this.thumbnail = product.getImage1();
@@ -25,6 +26,11 @@ public class ProductResponse {
         this.salePrice = product.getSalePrice();
         this.rating = product.getRatingAvg();
         this.reviewCount = product.getRatingCount();
-        this.wish = false;  //찜 도메인 구현 후 로그인 사용자 기준으로 채우기
+        this.wish = isWish;  //찜 도메인 구현 후 로그인 사용자 기준으로 채우기
+    }
+
+    //일반 상품 목록 조회할 때
+    public ProductResponse(Product product){
+        this(product, false);   //찜 여부를 안 넘기면 기본값인 false로 세팅
     }
 }
