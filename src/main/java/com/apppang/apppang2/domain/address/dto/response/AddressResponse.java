@@ -1,6 +1,6 @@
 package com.apppang.apppang2.domain.address.dto;
 
-import com.apppang.apppang2.domain.address.Address;
+import com.apppang.apppang2.domain.address.entity.Address;
 import lombok.Builder;
 import lombok.Getter;
 
