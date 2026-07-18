@@ -1,14 +1,20 @@
-package com.apppang.apppang2.domain.address;
+package com.apppang.apppang2.domain.address.service;
 
-import com.apppang.apppang2.domain.address.dto.AddressRequest;
-import com.apppang.apppang2.domain.address.dto.AddressResponse;
+import com.apppang.apppang2.domain.address.dto.request.AddressRequest;
+import com.apppang.apppang2.domain.address.dto.request.AddressUpdateRequest;
+import com.apppang.apppang2.domain.address.dto.response.AddressResponse;
+import com.apppang.apppang2.domain.address.entity.Address;
+import com.apppang.apppang2.domain.address.repository.AddressRepository;
 import com.apppang.apppang2.domain.user.entity.User;
 import com.apppang.apppang2.domain.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class AddressService {
@@ -51,6 +57,27 @@ public class AddressService {
         //DB에 저장하고 생성된 배송지 ID 반환
         Address savedAddress = addressRepository.save(newAddress);
         return savedAddress.getId();
+    }
+
+    //배송지 수정
+    @Transactional
+    public void updateAddress(Long userId, Long addressId, AddressUpdateRequest updateRequest){
+
+        //addressId로 수정할 배송지를 DB에서 찾음
+        Address address = addressRepository.findById(addressId)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 배송지입니다."));
+
+        log.info("토큰에서 뽑은 로그인 유저 Id : {}", userId);
+        log.info("DB에 저장된 배송지 주인 Id : {}", address.getUser().getId());
+
+        //배송지가 로그인한 유저의 것이 맞는지 권한 확인
+        if(!address.getUser().getId().equals(userId)){
+            throw new IllegalArgumentException("수정권한이 없습니다.");
+        }
+
+        //엔티티의 데이터 업데이트(메서드가 종료되는 시점에 @Transactional이 엔티티 값 변경 감지하고 자동으로 DB 업데이트)
+        address.updateAddress(updateRequest);
+
     }
 
 }

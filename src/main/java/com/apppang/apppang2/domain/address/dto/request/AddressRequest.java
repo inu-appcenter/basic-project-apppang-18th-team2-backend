@@ -1,4 +1,4 @@
-package com.apppang.apppang2.domain.address.dto;
+package com.apppang.apppang2.domain.address.dto.request;
 
 import lombok.Getter;
 
