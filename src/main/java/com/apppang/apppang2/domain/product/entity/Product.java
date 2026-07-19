@@ -80,4 +80,9 @@ public class Product extends BaseTimeEntity {
         this.ratingAvg = 0;     //리뷰가 생기면 갱신
         this.ratingCount = 0;
     }
+
+    //주문 시 재고 차감 (재고 충분 여부는 서비스에서 검증 후 호출)
+    public void decreaseStock(int quantity){
+        this.stock -= quantity;
+    }
 }
