@@ -37,4 +37,9 @@ public class Cart extends BaseTimeEntity {
         this.product = product;
         this.quantity = quantity;
     }
+
+    //이미 담긴 상품을 또 담을 때 수량만 증가
+    public void addQuantity(int amount){
+        this.quantity += amount;
+    }
 }
