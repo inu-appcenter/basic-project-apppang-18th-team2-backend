@@ -5,6 +5,8 @@ import com.apppang.apppang2.domain.auth.dto.response.FindIdResponse;
 import com.apppang.apppang2.domain.auth.dto.request.LoginRequest;
 import com.apppang.apppang2.domain.auth.dto.response.LoginResponse;
 import com.apppang.apppang2.domain.auth.dto.request.SignupRequest;
+import com.apppang.apppang2.domain.auth.entity.PasswordResetToken;
+import com.apppang.apppang2.domain.auth.repository.PasswordResetTokenRepository;
 import com.apppang.apppang2.domain.auth.repository.RefreshTokenRepository;
 import com.apppang.apppang2.domain.user.entity.Role;
 import com.apppang.apppang2.domain.user.entity.User;
@@ -14,9 +16,13 @@ import com.apppang.apppang2.global.util.JwtUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.core.parameters.P;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.time.LocalDateTime;
+import java.util.UUID;
 
 @Slf4j
 @RequiredArgsConstructor
@@ -26,6 +32,8 @@ public class AuthService {
     private final UserRepository userRepository;
     private final BCryptPasswordEncoder bCryptPasswordEncoder;
     private final RefreshTokenRepository refreshTokenRepository;
+    private final PasswordResetTokenRepository passwordResetTokenRepository;
+    private final MailService mailService;
 
 
     //컨트롤러의 최종 응답을 위해 DB에 저장된 후 발급된 userId(Long)를 반환
@@ -114,6 +122,53 @@ public class AuthService {
         }catch(Exception e){
             log.error("유저 {}의 RefreshToken 삭제 중 오류 발생: {}", userId, e.getMessage());
         }
+    }
+
+    //비밀번호 찾기
+    @Transactional
+    public void sendResetMail(String email){
+        //유저 찾기
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(()->new CustomException(HttpStatus.NOT_FOUND, "일치하는 회원 정보를 찾을 수 없습니다."));
+
+        //기존에 발급된 유요한 토큰이 있다면 삭제
+        passwordResetTokenRepository.deleteByUser(user);
+        passwordResetTokenRepository.flush();       //삭제부터 하고 insert 하기
+
+        //랜덤한 UUID 토큰 생성
+        String token = UUID.randomUUID().toString();
+        PasswordResetToken resetToken = PasswordResetToken.builder()
+                .token(token)
+                .user(user)
+                .expiryDate(LocalDateTime.now().plusMinutes(10))    //만료시간 10분
+                .build();
+        passwordResetTokenRepository.save(resetToken);
+
+        String resetLink = "http://localhost:5173/password-reset?token=" + token;
+        mailService.sendResetPAsswordEmail(user.getEmail(), resetLink);
+
+    }
+
+    //토큰 검증 및 새 비밀번호로 변경 요청
+    @Transactional
+    public void resetPassword(String token, String newPassword){
+        //토큰이 DB에 있는지 확인
+        PasswordResetToken resetToken = passwordResetTokenRepository.findByToken(token)
+                .orElseThrow(()->new CustomException(HttpStatus.BAD_REQUEST, "유효하지 않은 재설정 링크입니다."));
+
+        //토큰 만료 시간 확인
+        if(resetToken.isExpired()){
+            passwordResetTokenRepository.delete(resetToken);
+            throw new CustomException(HttpStatus.UNAUTHORIZED, "재설정 링크의 유효시간이 지났습니다. 다시 요청해주세요");
+        }
+
+        //새 비밀번호 암호화해서 User 엔티티 업데이트
+        User user = resetToken.getUser();
+        String encodedPassword = bCryptPasswordEncoder.encode(newPassword);
+        user.updatePassword(encodedPassword);
+
+        //사용 완료된 토큰 삭제
+        passwordResetTokenRepository.delete(resetToken);
     }
 
 }

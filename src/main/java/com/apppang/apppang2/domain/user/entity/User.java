@@ -66,4 +66,9 @@ public class User extends BaseTimeEntity {
         this.email = "deleted_" + this.id + "_" + this.email;
     }
 
+    //비밀번호 재설정
+    public void updatePassword(String newPassword){
+        this.password = newPassword;
+    }
+
 }

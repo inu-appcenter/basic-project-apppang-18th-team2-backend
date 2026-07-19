@@ -1,6 +1,7 @@
 package com.apppang.apppang2.domain.auth.controller;
 
 import com.apppang.apppang2.domain.auth.dto.request.FindIdRequest;
+import com.apppang.apppang2.domain.auth.dto.request.PasswordRequest;
 import com.apppang.apppang2.domain.auth.dto.response.EmailCheckResponse;
 import com.apppang.apppang2.domain.auth.dto.response.FindIdResponse;
 import com.apppang.apppang2.domain.auth.dto.request.SignupRequest;
@@ -100,6 +101,7 @@ public class AuthController {
         return ResponseEntity.ok(ApiResponse.success(message, data));
     }
 
+    //로그아웃
     @Operation(summary = "로그아웃")
     @PostMapping("/logout")
     public ResponseEntity<ApiResponse<String>> logout(@AuthenticationPrincipal Long userId){
@@ -109,5 +111,21 @@ public class AuthController {
         authService.logout(userId);
 
         return ResponseEntity.ok(ApiResponse.success("로그아웃되었습니다."));
+    }
+
+    //비밀번호 찾기(이메일 발송 요청)
+    @Operation(summary = "비밀번호 찾기(이메일요청)")
+    @PostMapping("/password-reset/request")
+    public ResponseEntity<ApiResponse<String>> requestPassword(@RequestBody PasswordRequest.Request request){
+        authService.sendResetMail(request.getEmail());
+        return ResponseEntity.ok(ApiResponse.success("비밀번호 재설정이 가능합니다."));
+    }
+
+    //새 비밀번호로 변경 요청
+    @Operation(summary = "새 비밀번호 변경")
+    @PatchMapping("/password-reset")
+    public ResponseEntity<ApiResponse<String>> resetPassword(@RequestBody PasswordRequest.Confirm request){
+        authService.resetPassword(request.getToken(), request.getNewPassword());
+        return ResponseEntity.ok(ApiResponse.success("비밀번호가 변경되었습니다."));
     }
 }
