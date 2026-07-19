@@ -42,4 +42,8 @@ public class Cart extends BaseTimeEntity {
     public void addQuantity(int amount){
         this.quantity += amount;
     }
+    //수량 조절
+    public void updateQuantity(int quantity){
+        this.quantity = quantity;
+    }
 }

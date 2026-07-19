@@ -1,6 +1,7 @@
 package com.apppang.apppang2.domain.cart.service;
 
 import com.apppang.apppang2.domain.cart.dto.response.CartItemResponse;
+import com.apppang.apppang2.domain.cart.dto.response.CartQuantityResponse;
 import com.apppang.apppang2.domain.cart.dto.response.CartResponse;
 import com.apppang.apppang2.domain.cart.entity.Cart;
 import com.apppang.apppang2.domain.cart.repository.CartRepository;
@@ -34,6 +35,7 @@ public class CartService {
         return new CartResponse(items, totalPrice);
     }
 
+    //장바구니 담기
     @Transactional
     public void addCartItem(Long userId, Long productId, int quantity){
 
@@ -61,5 +63,22 @@ public class CartService {
                     .quantity(quantity)
                     .build());
         }
+    }
+
+    //수량 조절
+    @Transactional
+    public CartQuantityResponse updateQuantity(Long userId, Long cartItemId, int quantity){
+        //내 장바구니 조회 — 없거나 남의 것이면 404
+        Cart cart = cartRepository.findByIdAndUserId(cartItemId, userId)
+                .orElseThrow(() -> new CustomException(HttpStatus.NOT_FOUND, "상품을 찾을 수 없습니다."));
+
+        //재고 검사
+        if (quantity > cart.getProduct().getStock()){
+            throw new CustomException(HttpStatus.BAD_REQUEST, "재고보다 많은 수량을 담을 수 없습니다.");
+        }
+
+        cart.updateQuantity(quantity);      //변경 감지로 UPDATE 자동 실행
+
+        return new CartQuantityResponse(cart.getQuantity());
     }
 }
