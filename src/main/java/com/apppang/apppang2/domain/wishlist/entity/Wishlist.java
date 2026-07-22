@@ -4,12 +4,15 @@ import com.apppang.apppang2.domain.product.entity.Product;
 import com.apppang.apppang2.domain.user.entity.User;
 import com.apppang.apppang2.global.common.BaseTimeEntity;
 import jakarta.persistence.*;
+import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 @Getter
 @Entity
 @Table(name = "wishlists")
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Wishlist extends BaseTimeEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -29,6 +32,4 @@ public class Wishlist extends BaseTimeEntity {
         this.user = user;
         this.product = product;
     }
-
-
 }
