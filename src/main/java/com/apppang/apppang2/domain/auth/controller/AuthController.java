@@ -110,7 +110,18 @@ public class AuthController {
         //유저Id 기준으로 DB의 Refresh Token을 삭제
         authService.logout(userId);
 
-        return ResponseEntity.ok(ApiResponse.success("로그아웃되었습니다."));
+        //브라우저의 쿠키를 지우기 위한 수명 0초 빈 쿠키 생성
+        ResponseCookie cookie = ResponseCookie.from("refreshToken","")
+                .httpOnly(true)
+                .path("/")
+                .maxAge(0)      //수명 0 => 브라우저가 즉시 폐기
+                .sameSite("Lax")
+                .build();
+
+        //헤더에 수명 0초 쿠키를 실어서 응답
+        return ResponseEntity.ok()
+                .header(HttpHeaders.SET_COOKIE, cookie.toString())
+                .body(ApiResponse.success("로그아웃 되었습니다."));
     }
 
     //비밀번호 찾기(이메일 발송 요청)
