@@ -6,6 +6,7 @@ import com.apppang.apppang2.domain.auth.dto.request.LoginRequest;
 import com.apppang.apppang2.domain.auth.dto.response.LoginResponse;
 import com.apppang.apppang2.domain.auth.dto.request.SignupRequest;
 import com.apppang.apppang2.domain.auth.entity.PasswordResetToken;
+import com.apppang.apppang2.domain.auth.entity.RefreshToken;
 import com.apppang.apppang2.domain.auth.repository.PasswordResetTokenRepository;
 import com.apppang.apppang2.domain.auth.repository.RefreshTokenRepository;
 import com.apppang.apppang2.domain.user.entity.Role;
@@ -15,6 +16,7 @@ import com.apppang.apppang2.global.exception.CustomException;
 import com.apppang.apppang2.global.util.JwtUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.parameters.P;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -22,6 +24,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.UUID;
 
 @Slf4j
@@ -34,6 +37,9 @@ public class AuthService {
     private final RefreshTokenRepository refreshTokenRepository;
     private final PasswordResetTokenRepository passwordResetTokenRepository;
     private final MailService mailService;
+
+    @Value("${jwt.refresh-token.expiration}")
+    private long refreshTokenExpirationMs;
 
 
     //컨트롤러의 최종 응답을 위해 DB에 저장된 후 발급된 userId(Long)를 반환
@@ -83,6 +89,18 @@ public class AuthService {
         //토큰 생성
         String accessToken = jwtUtil.generateAccessToken(user.getId(), user.getEmail());
         String refreshToken = jwtUtil.generateRefreshToken(user.getId());
+
+        //해당 유저가 이전에 발급받은 Refresh Token이 남아있다면 DB에서 삭제
+        refreshTokenRepository.deleteByUserId(user.getId());
+
+        //새 Refresh Token 엔티티 생성
+        RefreshToken tokenEntity = RefreshToken.builder()
+                .userId(user.getId())
+                .refreshToken(refreshToken)
+                .expiredAt(LocalDateTime.now().plus(refreshTokenExpirationMs, ChronoUnit.MILLIS))
+                .build();
+
+        refreshTokenRepository.save(tokenEntity);
 
         //로그인 응답 DTO 생성 및 반환
         return LoginResponse.builder()
