@@ -1,6 +1,7 @@
 package com.apppang.apppang2.domain.auth.service;
 
 import com.apppang.apppang2.domain.auth.dto.request.FindIdRequest;
+import com.apppang.apppang2.domain.auth.dto.response.TokenDto;
 import com.apppang.apppang2.domain.auth.dto.response.FindIdResponse;
 import com.apppang.apppang2.domain.auth.dto.request.LoginRequest;
 import com.apppang.apppang2.domain.auth.dto.response.LoginResponse;
@@ -18,7 +19,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
-import org.springframework.security.core.parameters.P;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -127,7 +127,9 @@ public class AuthService {
                 .orElseThrow(()->new CustomException(HttpStatus.NOT_FOUND, "일치하는 회원 정보를 찾을 수 없습니다."));
 
         //조회된 유저의 이메일 반환
-        return new FindIdResponse(user.getEmail());
+        return FindIdResponse.builder()
+                .email(user.getEmail())
+                .build();
     }
 
     @Transactional      //삭제하는 작업이므로 안전하게 실행
@@ -187,6 +189,37 @@ public class AuthService {
 
         //사용 완료된 토큰 삭제
         passwordResetTokenRepository.delete(resetToken);
+    }
+
+    //토큰 재발급
+    public TokenDto reissueToken(String oldRefreshToken){
+        //DB에서 프론트엔드가 보낸 Refresh Token이 존재하는지 확인
+        RefreshToken tokenEntity = refreshTokenRepository.findByRefreshToken(oldRefreshToken)
+                .orElseThrow(()->new CustomException(HttpStatus.UNAUTHORIZED,"유효하지 않거나 만료된 Refresh Token입니다."));
+
+        //토큰의 유저 정보 찾기
+        Long userId = tokenEntity.getUserId();
+        User user = userRepository.findById(userId)
+                .orElseThrow(()->new CustomException(HttpStatus.NOT_FOUND,"회원 정보를 찾을 수 없습니다."));
+
+        //새로운 토큰 생성
+        String newAccessToken = jwtUtil.generateAccessToken(user.getId(), user.getEmail());
+        String newRefreshToken = jwtUtil.generateRefreshToken(user.getId());
+
+        refreshTokenRepository.delete(tokenEntity);
+
+        //발급된 새로운 Refresh Token을 DB에 저장하고 최종 반환
+        RefreshToken newTokenEntity = RefreshToken.builder()
+                .userId(user.getId())
+                .refreshToken(newRefreshToken)
+                .expiredAt(LocalDateTime.now().plus(refreshTokenExpirationMs, ChronoUnit.MILLIS))
+                .build();
+        refreshTokenRepository.save(newTokenEntity);
+
+        return TokenDto.builder()
+                .accessToken(newAccessToken)
+                .refreshToken(newRefreshToken)
+                .build();
     }
 
 }
