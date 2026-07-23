@@ -41,10 +41,7 @@ public class AddressController {
     //배송지 추가
     @Operation(summary = "배송지 추가")
     @PostMapping
-    public ResponseEntity<ApiResponse<Long>> addAddress(@AuthenticationPrincipal UserDetails userDetails, @RequestBody AddressRequest request){
-
-
-        Long userId = Long.valueOf(userDetails.getUsername());
+    public ResponseEntity<ApiResponse<Long>> addAddress(@AuthenticationPrincipal Long userId, @RequestBody AddressRequest request){
 
         //요청받은 정보로 배송지를 생성하고 생성된 주소의 ID 반환받음
         Long addressId = addressService.addAddress(userId, request);
