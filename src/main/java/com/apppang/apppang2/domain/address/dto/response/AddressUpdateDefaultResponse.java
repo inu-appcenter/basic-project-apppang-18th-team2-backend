@@ -8,6 +8,7 @@ public class AddressUpdateDefaultResponse {
     private Long addressId;
     private boolean isDefault;
 
+    @Builder
     public AddressUpdateDefaultResponse(Long addressId, boolean isDefault){
         this.addressId = addressId;
         this.isDefault = isDefault;
