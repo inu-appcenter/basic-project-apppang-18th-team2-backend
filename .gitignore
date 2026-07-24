@@ -38,3 +38,5 @@ out/
 
 ### Enviroment ###
 .env
+front-dist/
+
