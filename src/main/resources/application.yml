@@ -1,6 +1,18 @@
 spring:
   application:
     name: apppang
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: ${GOOGLE_MAIL_USERNAME}
+    password: ${GOOGLE_MAIL_PASSWORD}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+            required: true
 
   profiles:
     active: ${SPRING_PROFILES_ACTIVE:local}
@@ -8,3 +20,12 @@ spring:
 
 server:
   port: 8080
+
+springdoc:
+  api-docs:
+    path: /api-docs
+
+  swagger-ui:
+    path: /swagger-ui.html
+    operations-sorter: method
+    tags-sorter: alpha

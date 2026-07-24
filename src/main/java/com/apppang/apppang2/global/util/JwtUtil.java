@@ -1,21 +1,26 @@
 package com.apppang.apppang2.global.util;
 
-import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.SignatureAlgorithm;
+import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;
 import jakarta.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.userdetails.User;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
 
 
 import java.security.Key;
 import java.util.Base64;
+import java.util.Collections;
 import java.util.Date;
 
 @Component
 public class JwtUtil {
-    //application-secret.yml에 저장한 값 불러오기
-    @Value("${jwt.access-token.expiration}")
+    //토큰 생성, 내용 검증, 유저 정보 추출
+
+    @Value("${jwt.access-token.expiration}")    //application-secret.yml에 저장한 값 불러오기
     private long accessTokenExpirationMs;
 
     @Value("${jwt.refresh-token.expiration}")
@@ -50,12 +55,52 @@ public class JwtUtil {
     //refreshToken 생성
     public String generateRefreshToken(Long userId){
         return Jwts.builder()
-                //TODO: UserDB 구현 완료 시 발급된 토큰을 DB에 저장하는 로직으로 변경 예정
-                .setSubject(String.valueOf(userId)) //임시로 setSubject를 통해 사용자 식별
+                .setSubject(String.valueOf(userId)) //유저ID로 토큰 주인 식별
                 .setIssuedAt(new Date())
                 .setExpiration(new Date(System.currentTimeMillis()+refreshTokenExpirationMs))
                 .signWith(key, SignatureAlgorithm.HS256)
                 .compact();
     }
 
+    //토큰이 변조되지 않았고 만료되지 않았는지 검증
+    public boolean validateToken(String token){
+        try{
+            Jwts.parserBuilder()
+                    .setSigningKey(key)
+                    .build()
+                    .parseClaimsJws(token); //토큰 파싱 시도
+            return true;
+        } catch(io.jsonwebtoken.security.SecurityException | MalformedJwtException e){
+            //잘못된 JWT 서명이나 형식일 때
+        } catch(ExpiredJwtException e){
+            //토큰이 만료되었을 때
+        } catch(UnsupportedJwtException e){
+            //지원되지 않는 JWT 형식일 때
+        } catch(IllegalArgumentException e){
+            //토큰 내용이 비어있을 때
+        }
+        return false;
+    }
+
+    //토큰에서 내부에 저장된 데이터 추출
+    public Claims getClaims(String token){
+        return Jwts.parserBuilder()                 //JWT를 해독할 파서 생성
+                .setSigningKey(key)                 //서버가 가지고 있는 서명키 주입
+                .build()                            //주입된 키를 바탕으로 파서 객체 생성
+                .parseClaimsJws(token)              //입력된 토큰의 서명을 검증하고 해독하여 JWT 객체로 반환
+                .getBody();                         //해독에 성공한 객체에서 페이로드 영역에 해당하느 Claims 꺼내서 반환
+    }
+
+    //필터에서 유효한 토큰을 받았을 때 토큰을 기반으로 인증 객체 생성
+    public Authentication getAuthentication(String token){
+        //DB 조회없이 토큰에서 뽑은 userId만 SecurityContext에 넣도록 최적화
+        Claims claims = getClaims(token);
+
+        //토큰 생성 시 Subject에 담았던 userId(String)를 꺼내서 Long으로 변환
+        Long userId = Long.valueOf(claims.getSubject());
+
+        //변환한 userId를 스프링 시큐리티 신분증으로 등록
+        return new UsernamePasswordAuthenticationToken(userId, "", Collections.emptyList());
+
+    }
 }
