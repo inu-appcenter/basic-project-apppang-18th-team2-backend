@@ -18,4 +18,7 @@ public interface AddressRepository extends JpaRepository<Address, Long> {
     //배송지ID로 배송지 조회
     Optional<Address> findById(Long id);
 
+    //내 배송지만 조회 (남의 배송지로 주문 방지)
+    Optional<Address> findByIdAndUserId(Long id, Long userId);
+
 }
