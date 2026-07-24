@@ -75,6 +75,7 @@ public class AuthService {
         return savedUser.getId();
     }
 
+    @Transactional
     public LoginResponse login(LoginRequest request) {
 
         //사용자 확인 (없으면 예외 발생)
