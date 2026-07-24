@@ -1,11 +1,13 @@
 package com.apppang.apppang2.domain.auth.service;
 
 import com.apppang.apppang2.domain.auth.dto.request.FindIdRequest;
+import com.apppang.apppang2.domain.auth.dto.response.TokenDto;
 import com.apppang.apppang2.domain.auth.dto.response.FindIdResponse;
 import com.apppang.apppang2.domain.auth.dto.request.LoginRequest;
 import com.apppang.apppang2.domain.auth.dto.response.LoginResponse;
 import com.apppang.apppang2.domain.auth.dto.request.SignupRequest;
 import com.apppang.apppang2.domain.auth.entity.PasswordResetToken;
+import com.apppang.apppang2.domain.auth.entity.RefreshToken;
 import com.apppang.apppang2.domain.auth.repository.PasswordResetTokenRepository;
 import com.apppang.apppang2.domain.auth.repository.RefreshTokenRepository;
 import com.apppang.apppang2.domain.user.entity.Role;
@@ -15,13 +17,14 @@ import com.apppang.apppang2.global.exception.CustomException;
 import com.apppang.apppang2.global.util.JwtUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
-import org.springframework.security.core.parameters.P;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.UUID;
 
 @Slf4j
@@ -34,6 +37,9 @@ public class AuthService {
     private final RefreshTokenRepository refreshTokenRepository;
     private final PasswordResetTokenRepository passwordResetTokenRepository;
     private final MailService mailService;
+
+    @Value("${jwt.refresh-token.expiration}")
+    private long refreshTokenExpirationMs;
 
 
     //컨트롤러의 최종 응답을 위해 DB에 저장된 후 발급된 userId(Long)를 반환
@@ -84,6 +90,18 @@ public class AuthService {
         String accessToken = jwtUtil.generateAccessToken(user.getId(), user.getEmail());
         String refreshToken = jwtUtil.generateRefreshToken(user.getId());
 
+        //해당 유저가 이전에 발급받은 Refresh Token이 남아있다면 DB에서 삭제
+        refreshTokenRepository.deleteByUserId(user.getId());
+
+        //새 Refresh Token 엔티티 생성
+        RefreshToken tokenEntity = RefreshToken.builder()
+                .userId(user.getId())
+                .refreshToken(refreshToken)
+                .expiredAt(LocalDateTime.now().plus(refreshTokenExpirationMs, ChronoUnit.MILLIS))
+                .build();
+
+        refreshTokenRepository.save(tokenEntity);
+
         //로그인 응답 DTO 생성 및 반환
         return LoginResponse.builder()
                 .accessToken(accessToken)               //토큰에 데이터 넣기
@@ -109,7 +127,9 @@ public class AuthService {
                 .orElseThrow(()->new CustomException(HttpStatus.NOT_FOUND, "일치하는 회원 정보를 찾을 수 없습니다."));
 
         //조회된 유저의 이메일 반환
-        return new FindIdResponse(user.getEmail());
+        return FindIdResponse.builder()
+                .email(user.getEmail())
+                .build();
     }
 
     @Transactional      //삭제하는 작업이므로 안전하게 실행
@@ -169,6 +189,37 @@ public class AuthService {
 
         //사용 완료된 토큰 삭제
         passwordResetTokenRepository.delete(resetToken);
+    }
+
+    //토큰 재발급
+    public TokenDto reissueToken(String oldRefreshToken){
+        //DB에서 프론트엔드가 보낸 Refresh Token이 존재하는지 확인
+        RefreshToken tokenEntity = refreshTokenRepository.findByRefreshToken(oldRefreshToken)
+                .orElseThrow(()->new CustomException(HttpStatus.UNAUTHORIZED,"유효하지 않거나 만료된 Refresh Token입니다."));
+
+        //토큰의 유저 정보 찾기
+        Long userId = tokenEntity.getUserId();
+        User user = userRepository.findById(userId)
+                .orElseThrow(()->new CustomException(HttpStatus.NOT_FOUND,"회원 정보를 찾을 수 없습니다."));
+
+        //새로운 토큰 생성
+        String newAccessToken = jwtUtil.generateAccessToken(user.getId(), user.getEmail());
+        String newRefreshToken = jwtUtil.generateRefreshToken(user.getId());
+
+        refreshTokenRepository.delete(tokenEntity);
+
+        //발급된 새로운 Refresh Token을 DB에 저장하고 최종 반환
+        RefreshToken newTokenEntity = RefreshToken.builder()
+                .userId(user.getId())
+                .refreshToken(newRefreshToken)
+                .expiredAt(LocalDateTime.now().plus(refreshTokenExpirationMs, ChronoUnit.MILLIS))
+                .build();
+        refreshTokenRepository.save(newTokenEntity);
+
+        return TokenDto.builder()
+                .accessToken(newAccessToken)
+                .refreshToken(newRefreshToken)
+                .build();
     }
 
 }

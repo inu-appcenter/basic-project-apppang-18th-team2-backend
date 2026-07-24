@@ -1,10 +1,10 @@
 package com.apppang.apppang2.domain.auth.dto.response;
 
-import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Getter;
 
 @Getter
-@AllArgsConstructor
+@Builder
 public class FindIdResponse {
     private String email;
 }
