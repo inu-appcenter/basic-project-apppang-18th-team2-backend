@@ -1,5 +1,6 @@
 package com.apppang.apppang2.domain.order.entity;
 
+import com.apppang.apppang2.domain.payment.entity.PaymentMethod;
 import com.apppang.apppang2.global.common.BaseTimeEntity;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
@@ -29,8 +30,9 @@ public class Order extends BaseTimeEntity {
     @Column(nullable = false)
     private OrderStatus orderStatus;
 
+    @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private String paymentMethod;   //결제 연동 전이라 생성 시 "CARD" 고정
+    private PaymentMethod paymentMethod;
 
     //주문 후 배송지를 수정/삭제해도 이 주문의 배송 정보는 보존 (스냅샷)
     @Column(nullable = false)
@@ -45,7 +47,7 @@ public class Order extends BaseTimeEntity {
     private String detailAddress;   //상세주소는 없을 수 있음
 
     @Builder
-    public Order(Long userId, int totalPrice, OrderStatus orderStatus, String paymentMethod,
+    public Order(Long userId, int totalPrice, OrderStatus orderStatus, PaymentMethod paymentMethod,
                  String receiver, String phone, String address, String detailAddress){
         this.userId = userId;
         this.totalPrice = totalPrice;
@@ -55,5 +57,11 @@ public class Order extends BaseTimeEntity {
         this.phone = phone;
         this.address = address;
         this.detailAddress = detailAddress;
+    }
+
+    //결제 완료 후 주문의 상태와 결제 수단을 업데이트
+    public void updatePaymentInfo(OrderStatus orderStatus, PaymentMethod paymentMethod){
+        this.orderStatus = orderStatus;
+        this.paymentMethod = paymentMethod;
     }
 }
