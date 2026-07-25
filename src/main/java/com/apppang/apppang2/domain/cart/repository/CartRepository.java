@@ -19,4 +19,7 @@ public interface CartRepository extends JpaRepository<Cart, Long> {
 
     //내 장바구니 조회, 수량조절,삭제용
     Optional<Cart> findByIdAndUserId(Long id, Long userId);
+
+    //유저ID로 해당 유저의 장바구니 상품을 모두 삭제
+    void deleteByUserId(Long userId);
 }
