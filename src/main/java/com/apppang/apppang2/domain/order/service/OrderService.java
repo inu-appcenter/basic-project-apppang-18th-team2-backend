@@ -10,6 +10,7 @@ import com.apppang.apppang2.domain.order.entity.OrderDetail;
 import com.apppang.apppang2.domain.order.entity.OrderStatus;
 import com.apppang.apppang2.domain.order.repository.OrderDetailRepository;
 import com.apppang.apppang2.domain.order.repository.OrderRepository;
+import com.apppang.apppang2.domain.payment.entity.PaymentMethod;
 import com.apppang.apppang2.domain.product.entity.Product;
 import com.apppang.apppang2.domain.product.repository.ProductRepository;
 import com.apppang.apppang2.global.exception.CustomException;
@@ -60,8 +61,8 @@ public class OrderService {
         Order order = orderRepository.save(Order.builder()
                 .userId(userId)
                 .totalPrice(totalPrice)
-                .orderStatus(OrderStatus.PAID)      //결제 연동 전: 생성 즉시 결제 완료로 간주
-                .paymentMethod("CARD")              //결제 방식 일단 카드결제로
+                .orderStatus(OrderStatus.PENDING)      //결제가 안 끝났으므로 결제 대기 상태로 저장
+                .paymentMethod(PaymentMethod.NONE)     //결제 방식 미정
                 .receiver(address.getReceiver())
                 .phone(address.getReceiverPhone())
                 .address(address.getRoadAddress())
