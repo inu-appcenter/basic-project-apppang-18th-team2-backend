@@ -5,6 +5,6 @@ import lombok.Getter;
 
 @Getter
 @Builder
-public class SignupResponse {
-    private Long userId;
+public class ReissueResponse {
+    private String accessToken;
 }

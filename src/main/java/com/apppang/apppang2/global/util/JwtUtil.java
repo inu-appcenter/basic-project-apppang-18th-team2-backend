@@ -55,8 +55,7 @@ public class JwtUtil {
     //refreshToken 생성
     public String generateRefreshToken(Long userId){
         return Jwts.builder()
-                //TODO: UserDB 구현 완료 시 발급된 토큰을 DB에 저장하는 로직으로 변경 예정
-                .setSubject(String.valueOf(userId)) //임시로 setSubject를 통해 사용자 식별
+                .setSubject(String.valueOf(userId)) //유저ID로 토큰 주인 식별
                 .setIssuedAt(new Date())
                 .setExpiration(new Date(System.currentTimeMillis()+refreshTokenExpirationMs))
                 .signWith(key, SignatureAlgorithm.HS256)

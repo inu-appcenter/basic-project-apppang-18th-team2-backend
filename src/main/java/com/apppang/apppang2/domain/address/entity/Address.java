@@ -8,8 +8,6 @@ import lombok.*;
 @Entity
 @Table(name="addresses")
 @Getter
-@Builder
-@AllArgsConstructor(access = AccessLevel.PRIVATE)   //빌더를 통해서만 객체를 생성
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Address {
     @Id
@@ -34,6 +32,16 @@ public class Address {
     private String detailAddress;
 
     private boolean isDefault;          //기본 배송지 여부
+
+    @Builder
+    public Address(User user, String receiver, String receiverPhone, String roadAddress, String detailAddress, boolean isDefault){
+        this.user = user;
+        this.receiver = receiver;
+        this.receiverPhone = receiverPhone;
+        this.roadAddress = roadAddress;
+        this.detailAddress = detailAddress;
+        this.isDefault = isDefault;
+    }
 
     public void updateDefault(boolean isDefault){
         this.isDefault = isDefault;
