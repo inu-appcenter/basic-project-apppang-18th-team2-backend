@@ -30,13 +30,15 @@ public class Payment {
     @Column(nullable = false)
     private int amount;                 //실제 결제된 금액
 
+    //enum을 DB에 문자열로 저장
+    @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private String status;              //결제 상태
+    private PaymentStatus status;              //결제 상태
 
     private LocalDateTime paidAt;       //결제 완료 시간
 
     @Builder
-    public Payment(Order order, PaymentMethod paymentMethod, int amount, String status){
+    public Payment(Order order, PaymentMethod paymentMethod, int amount, PaymentStatus status){
         this.order = order;
         this.paymentMethod = paymentMethod;
         this.amount = amount;

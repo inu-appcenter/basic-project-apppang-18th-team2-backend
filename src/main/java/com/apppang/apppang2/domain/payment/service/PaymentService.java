@@ -9,6 +9,7 @@ import com.apppang.apppang2.domain.order.repository.OrderRepository;
 import com.apppang.apppang2.domain.payment.dto.PaymentRequest;
 import com.apppang.apppang2.domain.payment.dto.PaymentResponse;
 import com.apppang.apppang2.domain.payment.entity.Payment;
+import com.apppang.apppang2.domain.payment.entity.PaymentStatus;
 import com.apppang.apppang2.domain.payment.repository.PaymentRepository;
 import com.apppang.apppang2.global.exception.CustomException;
 import lombok.RequiredArgsConstructor;
@@ -55,7 +56,7 @@ public class PaymentService {
                 .order(order)
                 .paymentMethod(request.getPaymentMethod())
                 .amount(order.getTotalPrice())
-                .status("SUCCESS")                      //성공 보장
+                .status(PaymentStatus.SUCCESS)                    //성공 보장, enum를 사용하도록 수정
                 .build();
 
         paymentRepository.save(payment);
@@ -70,7 +71,7 @@ public class PaymentService {
                 .orderId(order.getId())
                 .amount(payment.getAmount())
                 .paymentMethod(payment.getPaymentMethod().name())
-                .paymentStatus(payment.getStatus())
+                .paymentStatus(payment.getStatus().name()) //이름으로 받아와 String 타입을 맞춤
                 .paidAt(payment.getPaidAt())
                 .build();
     }
