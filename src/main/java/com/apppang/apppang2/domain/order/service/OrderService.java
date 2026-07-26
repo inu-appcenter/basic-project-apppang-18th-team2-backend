@@ -96,14 +96,19 @@ public class OrderService {
 
         return new CreateOrderResponse(order.getId(), totalPrice);
     }
+
     //주문 목록 조회 로직
+    @Transactional   //DB값을 수정할 수 있으므로 추가(배송)
     public OrderListResponse getMyOrders(Long userId, int page){
         //생성일 역순으로 정렬해서 10개씩 가져옴
         Pageable pageable = PageRequest.of(page, 10, Sort.by(Sort.Direction.DESC, "createdAt"));
         Page<Order> orderPage = orderRepository.findByUserId(userId, pageable);
 
         List<OrderResponse> orders = orderPage.getContent().stream()
-                .map(this::toOrderResponse)
+                .map(order -> {
+                    checkAndCreateDelivery(order);   //각 주문마다 배송 시작 조건 검증
+                    return toOrderResponse(order);
+                })
                 .toList();
 
         return new OrderListResponse(orders, page, orderPage.hasNext());
@@ -134,10 +139,13 @@ public class OrderService {
     }
 
     //주문 상세 조회 로직. 본인 주문이 아니거나 없으면 404 반환
+    @Transactional   //DB값을 수정할 수 있으므로 추가(배송)
     public OrderDetailResponse getOrderDetail(Long userId, Long orderId){
         Order order = orderRepository.findById(orderId)
                 .filter(o->o.getUserId().equals(userId))//주문 ID를 꺼내온 후 본인 주문이 아니라면 조회 실패
                 .orElseThrow(()-> new CustomException(HttpStatus.NOT_FOUND, "주문을 찾을 수 없습니다."));
+
+        checkAndCreateDelivery(order); //배송 시작 조건 검증(배송)
 
         //아직 결제 정보가 없다면 전부 null로 처리
         OrderDetailResponse.PaymentInfo paymentInfo = paymentRepository.findByOrderId(orderId)
