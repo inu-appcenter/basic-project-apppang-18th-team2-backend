@@ -2,6 +2,7 @@ package com.apppang.apppang2.domain.order.controller;
 
 import com.apppang.apppang2.domain.order.dto.request.CreateOrderRequest;
 import com.apppang.apppang2.domain.order.dto.response.CreateOrderResponse;
+import com.apppang.apppang2.domain.order.dto.response.OrderDetailResponse;
 import com.apppang.apppang2.domain.order.dto.response.OrderListResponse;
 import com.apppang.apppang2.domain.order.service.OrderService;
 import com.apppang.apppang2.global.common.ApiResponse;
@@ -43,5 +44,20 @@ public class OrderController {
 
         OrderListResponse response = orderService.getMyOrders(userId, page-1); //DB에서는 0부터 시작이므로 -1값을 보냄
         return ApiResponse.success("주문 내역 조회에 성공했습니다.", response);
+    }
+
+    //주문 상세 조회 API
+    @Operation(summary = "주문 상세 조회", description = "특정 주문의 상세 내역을 조회합니다.")
+    @GetMapping("/{orderId}")
+    public ApiResponse<OrderDetailResponse> getOrderDetail(
+            Authentication authentication,
+            @Parameter(description = "조회할 주문 ID", example = "105")
+            @PathVariable Long orderId){
+        
+        //유저 아이디와 order아이디를 서비스로 넘김
+        Long userId = Long.parseLong(authentication.getName());
+        OrderDetailResponse response = orderService.getOrderDetail(userId, orderId);
+
+        return ApiResponse.success("주문 상세 조회에 성공했습니다.", response);
     }
 }

@@ -5,6 +5,7 @@ import com.apppang.apppang2.domain.address.repository.AddressRepository;
 import com.apppang.apppang2.domain.order.dto.request.CreateOrderRequest;
 import com.apppang.apppang2.domain.order.dto.request.OrderItemRequest;
 import com.apppang.apppang2.domain.order.dto.response.CreateOrderResponse;
+import com.apppang.apppang2.domain.order.dto.response.OrderDetailResponse;
 import com.apppang.apppang2.domain.order.dto.response.OrderListResponse;
 import com.apppang.apppang2.domain.order.dto.response.OrderResponse;
 import com.apppang.apppang2.domain.order.entity.Order;
@@ -128,6 +129,89 @@ public class OrderService {
                 .thumbnail(representativeProduct.getImage1())
                 .productName(representativeProduct.getName())
                 .itemCount(details.size())
+                .build();
+    }
+
+    //주문 상세 조회 로직. 본인 주문이 아니거나 없으면 404 반환
+    public OrderDetailResponse getOrderDetail(Long userId, Long orderId){
+        Order order = orderRepository.findById(orderId)
+                .filter(o->o.getUserId().equals(userId))//주문 ID를 꺼내온 후 본인 주문이 아니라면 조회 실패
+                .orElseThrow(()-> new CustomException(HttpStatus.NOT_FOUND, "주문을 찾을 수 없습니다."));
+
+        //아직 결제 정보가 없다면 전부 null로 처리
+        OrderDetailResponse.PaymentInfo paymentInfo = paymentRepository.findByOrderId(orderId)
+                .map(p -> OrderDetailResponse.PaymentInfo.builder()
+                        .paymentMethod(p.getPaymentMethod().name())
+                        .paymentStatus(p.getStatus().name())
+                        .paidAt(p.getPaidAt())
+                        .build())
+                .orElse(OrderDetailResponse.PaymentInfo.builder().build());
+
+        //수령인 전화번호 마스킹 처리
+        OrderDetailResponse.ReceiverInfo receiverInfo = OrderDetailResponse.ReceiverInfo.builder()
+                .name(order.getReceiver())
+                .phone(maskPhone(order.getPhone()))
+                .build();
+
+        //배송지 정보
+        OrderDetailResponse.AddressInfo addressInfo = OrderDetailResponse.AddressInfo.builder()
+                .roadAddress(order.getAddress())
+                .detailAddress(order.getDetailAddress())
+                .build();
+
+        //상품별 상세
+        //할인율은 스냅샷 가격 기준으로 할인율을 역산
+        List<OrderDetail> details = orderDetailRepository.findByOrderId(orderId);
+        List<OrderDetailResponse.OrderItemInfo> items = details.stream()
+                .map(this::toOrderItemInfo)
+                .toList();
+
+        int productPrice = details.stream().mapToInt(d-> d.getPrice()*d.getQuantity()).sum();
+        int discountPrice = productPrice - order.getTotalPrice();
+
+        //결제 요약
+        OrderDetailResponse.SummaryInfo summaryInfo = OrderDetailResponse.SummaryInfo.builder()
+                .productPrice(productPrice)
+                .deliveryFee(0)
+                .discountPrice(discountPrice)
+                .totalPrice(order.getTotalPrice())
+                .build();
+
+        return OrderDetailResponse.builder()
+                .orderId(order.getId())
+                .orderedAt(order.getCreatedAt())
+                .orderStatus(order.getOrderStatus().name())
+                .payment(paymentInfo)
+                .receiver(receiverInfo)
+                .address(addressInfo)
+                .items(items)
+                .summary(summaryInfo)
+                .build();
+    }
+
+    //마스킹 메서드
+    //명세서 조건에 맞춰 01012345678이라면 010-****-5678로 반환
+    private String maskPhone(String phone){
+        //전화번호 조건에 안 맞는 정보가 들어온다면 그대로 반환
+        if(phone==null || !phone.matches("\\d{11}")) return phone;
+        return phone.substring(0,3) + "-****-" + phone.substring(7);
+    }
+
+    //OrderDetail을 응답 상품 정보로 변환하는 메서드
+    private OrderDetailResponse.OrderItemInfo toOrderItemInfo(OrderDetail detail){
+        int originalPrice = detail.getPrice();
+        int salePrice = detail.getDiscountPrice();
+        int discountRate = originalPrice == 0 ? 0 : (originalPrice - salePrice) * 100 / originalPrice;
+
+        return OrderDetailResponse.OrderItemInfo.builder()
+                .productId(detail.getProduct().getId())
+                .productName(detail.getProduct().getName())
+                .thumbnail(detail.getProduct().getImage1())
+                .originalPrice(originalPrice)
+                .discountRate(discountRate)
+                .salePrice(salePrice)
+                .quantity(detail.getQuantity())
+                .totalPrice(salePrice * detail.getQuantity())
                 .build();
     }
 
