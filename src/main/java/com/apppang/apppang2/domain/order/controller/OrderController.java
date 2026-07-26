@@ -60,4 +60,19 @@ public class OrderController {
 
         return ApiResponse.success("주문 상세 조회에 성공했습니다.", response);
     }
+
+    //주문 취소 API
+    @Operation(summary = "주문 취소", description = "결제 완료 또는 상품 준비 단계의 주문을 취소합니다. 배송이 시작된 주문은 취소할 수 없습니다.")
+    @PatchMapping("/{orderId}/cancel")
+    public ApiResponse<Void> cancelOrder(
+            Authentication authentication,
+            @Parameter(description = "취소할 주문 ID", example = "105")
+            @PathVariable Long orderId){
+
+        Long userId = Long.parseLong(authentication.getName());
+
+        orderService.cancelOrder(userId, orderId);
+
+        return ApiResponse.success("주문이 취소되었습니다.");
+    }
 }

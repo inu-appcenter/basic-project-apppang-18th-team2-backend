@@ -215,5 +215,35 @@ public class OrderService {
                 .build();
     }
 
+    //주문 취소 로직. 배송 시작 전(PENDING/PAID/PREPARING)까지만 취소 가능
+    @Transactional //DB값을 수정해야하므로
+    public void cancelOrder(Long userId, Long orderId){
+        //주문을 조회하여 존재하지 않거나 userId와 일치하지 않는다면 404
+        Order order =orderRepository.findById(orderId)
+                .filter(o->o.getUserId().equals(userId))
+                .orElseThrow(() -> new CustomException(HttpStatus.NOT_FOUND, "주문을 찾을 수 없습니다."));
+
+        //배송 시작 이후인지 확인. 만약 그렇다면 취소불가
+        if (!isCancelable(order.getOrderStatus())){
+            throw new CustomException(HttpStatus.CONFLICT, "배송이 시작된 주문은 취소할 수 없습니다.");
+        }
+
+        //주문에 담긴 상품들의 재고를 복구
+        List<OrderDetail> details = orderDetailRepository.findByOrderId(orderId);
+        for (OrderDetail detail : details){
+            detail.getProduct().increaseStock(detail.getQuantity());
+        }
+
+        //주문을 취소해도 내역은 남아야하므로 상태만 CANCELED로 변경
+        order.updateOrderStatus(OrderStatus.CANCELED);
+    }
+
+    //취소 가능한 상태를 PENDING/PAID/PREPARING으로 지정하는 메서드
+    private boolean isCancelable(OrderStatus status){
+        return status == OrderStatus.PENDING
+                || status == OrderStatus.PAID
+                || status == OrderStatus.PREPARING;
+    }
+
 
 }

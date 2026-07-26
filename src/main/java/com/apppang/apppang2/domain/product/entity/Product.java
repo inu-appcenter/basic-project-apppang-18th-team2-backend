@@ -85,4 +85,10 @@ public class Product extends BaseTimeEntity {
     public void decreaseStock(int quantity){
         this.stock -= quantity;
     }
+
+    //주문 취소시 재고 복구
+    public void increaseStock(int quantity) {
+        this.stock += quantity;
+    }
+
 }
