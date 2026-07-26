@@ -11,6 +11,6 @@ public class ReviewUpdateRequest {
     private Double rating;
 
     @NotBlank(message = "리뷰 내용을 입력해주세요.")
-    @Size(min = 10, max = 500, message = "리뷰는 10자 이상, 500자 이하로 작성해주세요")
+    @Size(min = 10, max = 1000, message = "리뷰는 10자 이상, 1000자 이하로 작성해주세요")
     private String content;
 }

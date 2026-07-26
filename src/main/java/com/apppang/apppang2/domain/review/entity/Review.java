@@ -1,35 +1,36 @@
 package com.apppang.apppang2.domain.review.entity;
 
+import com.apppang.apppang2.domain.order.entity.OrderDetail;
 import com.apppang.apppang2.domain.product.entity.Product;
 import com.apppang.apppang2.domain.user.entity.User;
 import com.apppang.apppang2.global.common.BaseTimeEntity;
 import jakarta.persistence.*;
+import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 @Entity
 @Getter
 @Table(name = "reviews")
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Review extends BaseTimeEntity {
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "review_id")
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id", nullable = false)
+    @JoinColumn(name = "user_id")
     private User user;
 
-    @ManyToOne(fetch = FetchType.LAZY)   //한 물건 당 여러 리뷰 가능
-    @JoinColumn(name = "product_id", nullable = false)
-    private Product product;
+    @Column(name = "product_id", nullable = false)
+    private Long productId;
 
-    /* 주문상세가 구현되면 완성
     @OneToOne(fetch = FetchType.LAZY)   //한 주문상세 당 하나의 리뷰만 작성 가능
     @JoinColumn(name = "order_detail_id", nullable = false)
     private OrderDetail orderDetail;
-    */
+
 
     @Column(nullable = false)
     private double rating;
@@ -47,10 +48,10 @@ public class Review extends BaseTimeEntity {
     private String imageUrl2;
 
     @Builder
-    public Review(User user, Product product, double rating, String content, String imageUrl1, String imageUrl2){
+    public Review(User user, Long productId, OrderDetail orderDetail, double rating, String content, String imageUrl1, String imageUrl2){
         this.user = user;
-        this.product = product;
-        //this.orderDetail = orderDetail;
+        this.productId = productId;
+        this.orderDetail = orderDetail;
         this.rating = rating;
         this.content = content;
         this.imageUrl1 = imageUrl1;

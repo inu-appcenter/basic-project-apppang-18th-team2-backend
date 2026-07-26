@@ -12,6 +12,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -33,14 +34,14 @@ public class ReviewController {
 
         return ResponseEntity
                 .status(HttpStatus.CREATED)
-                .body(ApiResponse.success("리뷰가 작성되었습니다.", new ReviewCreateResponse(reviewId)));
+                .body(ApiResponse.success("리뷰가 작성되었습니다.", ReviewCreateResponse.builder().reviewId(reviewId).build()));
     }
 
     //리뷰조회
     @Operation(summary = "리뷰 조회")
     @GetMapping("/api/products/{productId}/reviews")
     //인증된 유저Id(비회원은 null)가 요청받은 특정 상품의 리뷰를 한 페이지당 10개의 리뷰씩 묶어서 조회
-    public ResponseEntity<ApiResponse<ReviewListResponse>> getReviews(@PathVariable Long productId, @AuthenticationPrincipal Long userId, @PageableDefault(size=10) Pageable pageable){
+    public ResponseEntity<ApiResponse<ReviewListResponse>> getReview(@PathVariable Long productId, @AuthenticationPrincipal Long userId, @PageableDefault(size=10, sort = "createdAt",direction = Sort.Direction.DESC) Pageable pageable){
         ReviewListResponse response = reviewService.getReviews(productId, userId, pageable);
 
         return ResponseEntity.ok(ApiResponse.success("리뷰조회에 성공했습니다.",response));
@@ -48,8 +49,8 @@ public class ReviewController {
 
     //리뷰 수정
     @Operation(summary = "리뷰 수정")
-    @GetMapping("/api/reviews/{reviewId}")
-    public ResponseEntity<ApiResponse<Void>> updateReviews(@PathVariable Long reviewId, @AuthenticationPrincipal Long userId, @Valid @RequestBody ReviewUpdateRequest request){
+    @PatchMapping("/api/reviews/{reviewId}")
+    public ResponseEntity<ApiResponse<Void>> updateReview(@PathVariable Long reviewId, @AuthenticationPrincipal Long userId, @Valid @RequestBody ReviewUpdateRequest request){
         reviewService.updateReview(reviewId, userId, request);
 
         return ResponseEntity.ok(ApiResponse.success("리뷰가 수정되었습니다."));
@@ -57,7 +58,7 @@ public class ReviewController {
 
     //리뷰 삭제
     @Operation(summary = "리뷰 삭제")
-    @GetMapping("/api/reviews/{reviewId}")
+    @DeleteMapping("/api/reviews/{reviewId}")
     public ResponseEntity<ApiResponse<Void>> deleteReviews(@PathVariable Long reviewId, @AuthenticationPrincipal Long userId){
         reviewService.deleteReview(reviewId, userId);
 
@@ -65,7 +66,7 @@ public class ReviewController {
     }
 
     //도움돼요
-    @Operation(summary = "리뷰 삭제")
+    @Operation(summary = "도움돼요")
     @PostMapping("/api/reviews/{reviewId}/likes")
     public ResponseEntity<ApiResponse<ReviewLikeResponse>> helpedReviews(@PathVariable Long reviewId, @AuthenticationPrincipal Long userId){
         ReviewLikeResponse response = reviewService.helpedReview(reviewId, userId);
