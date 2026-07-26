@@ -5,6 +5,7 @@ import com.apppang.apppang2.domain.user.entity.User;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import lombok.Builder;
 import lombok.Getter;
+import org.springframework.security.core.parameters.P;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -27,9 +28,19 @@ public class ReviewDetailResponse {
     private final boolean helped;      //현재 로그인한 유저가 이 리뷰에 도움돼요를 눌렀는지 여부
 
     public static ReviewDetailResponse of(Review review, User user, boolean isHelped){
+        //유저 탈퇴 여부 및 null 체크
+        String displayUserName = "알 수 없음";
+        if(user!=null){
+            if(user.isDeleted()){
+                displayUserName = "탈퇴한 사용자";    //탈퇴한 유저는 마스킹 없이 그대로 출력
+            }else{
+                displayUserName = maskName(user.getName()); //정상 유저만 마스킹 처리
+            }
+        }
+
         return ReviewDetailResponse.builder()
                 .reviewId(review.getId())
-                .userName(maskName(user.getName()))
+                .userName(displayUserName)
                 .rating(review.getRating())
                 .content(review.getContent())
                 .images(extractImages(review))
