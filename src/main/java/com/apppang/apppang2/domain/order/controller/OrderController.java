@@ -2,6 +2,7 @@ package com.apppang.apppang2.domain.order.controller;
 
 import com.apppang.apppang2.domain.order.dto.request.CreateOrderRequest;
 import com.apppang.apppang2.domain.order.dto.response.CreateOrderResponse;
+import com.apppang.apppang2.domain.order.dto.response.DeliveryResponse;
 import com.apppang.apppang2.domain.order.dto.response.OrderDetailResponse;
 import com.apppang.apppang2.domain.order.dto.response.OrderListResponse;
 import com.apppang.apppang2.domain.order.service.OrderService;
@@ -74,5 +75,20 @@ public class OrderController {
         orderService.cancelOrder(userId, orderId);
 
         return ApiResponse.success("주문이 취소되었습니다.");
+    }
+
+    //배송 조회 API
+    @Operation(summary = "배송 조회", description = "선택한 주문의 배송 상태를 조회합니다.")
+    @GetMapping("/{orderId}/delivery")
+    public ApiResponse<DeliveryResponse> getDelivery(
+            Authentication authentication,
+            @Parameter(description = "조회할 주문 ID", example = "105")
+            @PathVariable Long orderId){
+
+        Long userId = Long.parseLong(authentication.getName());
+
+        DeliveryResponse response = orderService.getDelivery(userId, orderId);
+
+        return ApiResponse.success("배송 조회에 성공했습니다.", response);
     }
 }

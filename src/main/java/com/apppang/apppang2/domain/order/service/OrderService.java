@@ -8,12 +8,11 @@ import com.apppang.apppang2.domain.order.dto.response.CreateOrderResponse;
 import com.apppang.apppang2.domain.order.dto.response.OrderDetailResponse;
 import com.apppang.apppang2.domain.order.dto.response.OrderListResponse;
 import com.apppang.apppang2.domain.order.dto.response.OrderResponse;
-import com.apppang.apppang2.domain.order.entity.Order;
-import com.apppang.apppang2.domain.order.entity.OrderDetail;
-import com.apppang.apppang2.domain.order.entity.OrderStatus;
+import com.apppang.apppang2.domain.order.dto.response.DeliveryResponse;
+import com.apppang.apppang2.domain.order.entity.*;
+import com.apppang.apppang2.domain.order.repository.DeliveryRepository;
 import com.apppang.apppang2.domain.order.repository.OrderDetailRepository;
 import com.apppang.apppang2.domain.order.repository.OrderRepository;
-import com.apppang.apppang2.domain.payment.entity.Payment;
 import com.apppang.apppang2.domain.payment.entity.PaymentMethod;
 import com.apppang.apppang2.domain.payment.repository.PaymentRepository;
 import com.apppang.apppang2.domain.product.entity.Product;
@@ -28,6 +27,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -40,6 +40,7 @@ public class OrderService {
     private final ProductRepository productRepository;
     private final AddressRepository addressRepository;
     private final PaymentRepository paymentRepository; //결제 상태 조회도 하기 위해 추가
+    private final DeliveryRepository deliveryRepository; //배송 레포지토리 연결
 
     //주문 생성: 상품 검증 → 재고 차감 → 주문 저장 → 주문 상세 저장이 전부 한 트랜잭션
     //중간에 예외가 나면 원상복구됨
@@ -245,5 +246,60 @@ public class OrderService {
                 || status == OrderStatus.PREPARING;
     }
 
+    /*
+    배송 조회 로직
+    현재는 배송 도메인이 따로 없어 직접 DB를 건드리는게 아니면 배송 정보 지정이 불가능
+    임시로 일정시간이 지나면 배송 정보가 생성되게 구현
+     */
+    @Transactional  //DB값을 수정해야하므로 GET이지만 추가
+    public DeliveryResponse getDelivery (Long userId,Long orderId){
 
+        //주문이 없거나 사용자가 동일하지 않으면 404
+        Order order = orderRepository.findById(orderId)
+                .filter(o -> o.getUserId().equals(userId))
+                .orElseThrow(() -> new CustomException(HttpStatus.NOT_FOUND, "배송 정보를 찾을 수 없습니다."));
+
+        //조회 시점에 배송 시작 조건을 검증
+        //조건 충족 시 배송 정보 생성
+        checkAndCreateDelivery(order);
+
+        Delivery delivery = deliveryRepository.findByOrderId(orderId)
+                .orElseThrow(() -> new CustomException(HttpStatus.NOT_FOUND, "배송 정보를 찾을 수 없습니다."));
+
+        return DeliveryResponse.builder()
+                .orderId(order.getId())
+                .status(delivery.getDeliveryStatus().name())
+                .trackingNumber(delivery.getTrackingNumber())
+                .deliveryCompany(delivery.getCourier())
+                .estimatedArrival(delivery.getCompletedAt().toLocalDate())
+                .build();
+    }
+
+    //주문 조회 진입시 호출
+    //배송 시작 조건(주문 후 10분)을 검증하고 필요하다면 배송 정보를 생성함
+    private void checkAndCreateDelivery(Order order){
+
+        if (deliveryRepository.findByOrderId(order.getId()).isPresent()){
+            return;
+        }
+
+        //이미 배송 정보가 있다면 배송 정보를 생성하지 않음
+        LocalDateTime deliveryStartTime = order.getCreatedAt().plusMinutes(10);
+        if (LocalDateTime.now().isBefore(deliveryStartTime)){
+            return;
+        }
+
+        //10분 경과 + 아직 배송정보 없음 → 배송정보 생성 + Order 상태 동기화
+        Delivery delivery = Delivery.builder()
+                .order(order)
+                .trackingNumber("1234567890")
+                .deliveryStatus(DeliveryStatus.DELIVERING)
+                .courier("CJ대한통운")
+                .startedAt(deliveryStartTime)
+                .completedAt(deliveryStartTime.plusDays(3))
+                .build();
+        deliveryRepository.save(delivery);
+
+        order.updateOrderStatus(OrderStatus.DELIVERING);
+    }
 }
