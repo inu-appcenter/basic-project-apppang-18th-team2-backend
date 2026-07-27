@@ -67,7 +67,6 @@ public class User extends BaseTimeEntity {
         this.name = "탈퇴한 사용자";      //이름은 탈퇴한 사용자로 표시
         this.phone = null;             //전화번호 및 프로필 이미지 비워두기
         this.profileImage = null;
-        this.password = "deleted_password"; //혹시 모를 로그인 시도를 차단하기 위해 임의의 값으로 변경
     }
 
     //비밀번호 재설정
