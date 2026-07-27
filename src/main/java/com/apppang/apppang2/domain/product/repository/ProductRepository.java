@@ -26,6 +26,4 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
                           @Param("event") String event,
                           Pageable pageable);
 
-    //keyword로 시작하는 상품을 최신순(ID 내림차순)으로 10개 가져오기(대소문자 무시)
-    List<Product> findTop10ByNameStartingWithIgnoreCaseOrderByIdDesc(String keyword);
 }
