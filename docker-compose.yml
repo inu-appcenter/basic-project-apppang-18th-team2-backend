@@ -14,6 +14,13 @@ services:
 
     restart: unless-stopped
 
+  redis:
+    image: redis:7-alpine
+
+    container_name: apppang-redis
+
+    restart: unless-stopped
+
   nginx:
     image: nginx:alpine
 
