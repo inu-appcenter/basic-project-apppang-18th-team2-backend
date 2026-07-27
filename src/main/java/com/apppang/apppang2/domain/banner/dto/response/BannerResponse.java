@@ -5,10 +5,10 @@ import lombok.Getter;
 
 @Getter
 public class BannerResponse {
-    private Long bannerId;
-    private String title;
-    private String imageUrl;
-    private String targetUrl;
+    private final Long bannerId;
+    private final String title;
+    private final String imageUrl;
+    private final String targetUrl;
 
     //Banner 엔티티를 BannerResponse로 변환하기 위한 생성자
     public BannerResponse(Banner banner){

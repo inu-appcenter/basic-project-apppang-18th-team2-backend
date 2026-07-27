@@ -1,10 +1,14 @@
 package com.apppang.apppang2.domain.banner.entity;
 
+import com.apppang.apppang2.global.common.BaseTimeEntity;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.CreationTimestamp;
+
+import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "banners")
@@ -19,10 +23,10 @@ public class Banner {
     @Column(nullable = false)
     private String title;
 
-    @Column(nullable = false)
+    @Column(nullable = false, length = 512)
     private String imageUrl;
 
-    @Column(nullable = false)
+    @Column(nullable = false, length = 512)
     private String targetUrl;   //클릭 시 이동할 URL
 
     @Column(nullable = false)
@@ -30,6 +34,10 @@ public class Banner {
 
     @Column(nullable = false)
     private boolean isActive;   //활성화 여부
+
+    @CreationTimestamp  //객체가 생성될 때 자동으로 현재시간 넣어줌
+    @Column(name = "created_at", nullable = false, columnDefinition = "datetime(6) default CURRENT_TIMESTAMP(6)")
+    private LocalDateTime createdAt;
 
     @Builder
     public Banner(String title, String imageUrl,
