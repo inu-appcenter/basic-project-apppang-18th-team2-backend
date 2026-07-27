@@ -5,16 +5,23 @@ import com.apppang.apppang2.domain.address.repository.AddressRepository;
 import com.apppang.apppang2.domain.order.dto.request.CreateOrderRequest;
 import com.apppang.apppang2.domain.order.dto.request.OrderItemRequest;
 import com.apppang.apppang2.domain.order.dto.response.CreateOrderResponse;
-import com.apppang.apppang2.domain.order.entity.Order;
-import com.apppang.apppang2.domain.order.entity.OrderDetail;
-import com.apppang.apppang2.domain.order.entity.OrderStatus;
+import com.apppang.apppang2.domain.order.dto.response.OrderDetailResponse;
+import com.apppang.apppang2.domain.order.dto.response.OrderListResponse;
+import com.apppang.apppang2.domain.order.dto.response.OrderResponse;
+import com.apppang.apppang2.domain.order.dto.response.DeliveryResponse;
+import com.apppang.apppang2.domain.order.entity.*;
 import com.apppang.apppang2.domain.order.repository.OrderDetailRepository;
 import com.apppang.apppang2.domain.order.repository.OrderRepository;
 import com.apppang.apppang2.domain.payment.entity.PaymentMethod;
+import com.apppang.apppang2.domain.payment.repository.PaymentRepository;
 import com.apppang.apppang2.domain.product.entity.Product;
 import com.apppang.apppang2.domain.product.repository.ProductRepository;
 import com.apppang.apppang2.global.exception.CustomException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -30,6 +37,7 @@ public class OrderService {
     private final OrderDetailRepository orderDetailRepository;
     private final ProductRepository productRepository;
     private final AddressRepository addressRepository;
+    private final PaymentRepository paymentRepository; //결제 상태 조회도 하기 위해 추가
 
     //주문 생성: 상품 검증 → 재고 차감 → 주문 저장 → 주문 상세 저장이 전부 한 트랜잭션
     //중간에 예외가 나면 원상복구됨
@@ -85,4 +93,186 @@ public class OrderService {
 
         return new CreateOrderResponse(order.getId(), totalPrice);
     }
+
+    //주문 목록 조회 로직
+    //DB값을 수정할 수 있으므로 추가(배송)
+    public OrderListResponse getMyOrders(Long userId, int page){
+        //생성일 역순으로 정렬해서 10개씩 가져옴
+        Pageable pageable = PageRequest.of(page, 10, Sort.by(Sort.Direction.DESC, "createdAt"));
+        Page<Order> orderPage = orderRepository.findByUserId(userId, pageable);
+
+        List<OrderResponse> orders = orderPage.getContent().stream()
+                .map(order -> {
+                    return toOrderResponse(order);
+                })
+                .toList();
+
+        return new OrderListResponse(orders, page, orderPage.hasNext());
+    }
+
+    //주문 엔티티 하나를 응답 DTO로 변환하는 메소드
+    private OrderResponse toOrderResponse (Order order){
+        //주문에 담긴 상품 상세 목록
+        //대표 상품은 첫번째 상품으로 설정함
+        List<OrderDetail> details = orderDetailRepository.findByOrderId(order.getId());
+        Product representativeProduct = details.get(0).getProduct();
+
+        //결제 전이라면 Payment가 없으므로 null
+        String paymentStatus = paymentRepository.findByOrderId(order.getId())
+                .map(payment -> payment.getStatus().name())
+                .orElse(null);
+
+        return OrderResponse.builder()
+                .orderId(order.getId())
+                .orderedAt(order.getCreatedAt())
+                .orderStatus(order.getOrderStatus().name())   //기존 OrderStatus enum 값 그대로 사용
+                .paymentStatus(paymentStatus)
+                .totalPrice(order.getTotalPrice())
+                .thumbnail(representativeProduct.getImage1())
+                .productName(representativeProduct.getName())
+                .itemCount(details.size())
+                .build();
+    }
+
+    //주문 상세 조회 로직. 본인 주문이 아니거나 없으면 404 반환
+    public OrderDetailResponse getOrderDetail(Long userId, Long orderId){
+        Order order = orderRepository.findById(orderId)
+                .filter(o->o.getUserId().equals(userId))//주문 ID를 꺼내온 후 본인 주문이 아니라면 조회 실패
+                .orElseThrow(()-> new CustomException(HttpStatus.NOT_FOUND, "주문을 찾을 수 없습니다."));
+
+        //아직 결제 정보가 없다면 전부 null로 처리
+        OrderDetailResponse.PaymentInfo paymentInfo = paymentRepository.findByOrderId(orderId)
+                .map(p -> OrderDetailResponse.PaymentInfo.builder()
+                        .paymentMethod(p.getPaymentMethod().name())
+                        .paymentStatus(p.getStatus().name())
+                        .paidAt(p.getPaidAt())
+                        .build())
+                .orElse(OrderDetailResponse.PaymentInfo.builder().build());
+
+        //수령인 전화번호 마스킹 처리
+        OrderDetailResponse.ReceiverInfo receiverInfo = OrderDetailResponse.ReceiverInfo.builder()
+                .name(order.getReceiver())
+                .phone(maskPhone(order.getPhone()))
+                .build();
+
+        //배송지 정보
+        OrderDetailResponse.AddressInfo addressInfo = OrderDetailResponse.AddressInfo.builder()
+                .roadAddress(order.getAddress())
+                .detailAddress(order.getDetailAddress())
+                .build();
+
+        //상품별 상세
+        //할인율은 스냅샷 가격 기준으로 할인율을 역산
+        List<OrderDetail> details = orderDetailRepository.findByOrderId(orderId);
+        List<OrderDetailResponse.OrderItemInfo> items = details.stream()
+                .map(this::toOrderItemInfo)
+                .toList();
+
+        int productPrice = details.stream().mapToInt(d-> d.getPrice()*d.getQuantity()).sum();
+        int discountPrice = productPrice - order.getTotalPrice();
+
+        //결제 요약
+        OrderDetailResponse.SummaryInfo summaryInfo = OrderDetailResponse.SummaryInfo.builder()
+                .productPrice(productPrice)
+                .deliveryFee(0)
+                .discountPrice(discountPrice)
+                .totalPrice(order.getTotalPrice())
+                .build();
+
+        return OrderDetailResponse.builder()
+                .orderId(order.getId())
+                .orderedAt(order.getCreatedAt())
+                .orderStatus(order.getOrderStatus().name())
+                .payment(paymentInfo)
+                .receiver(receiverInfo)
+                .address(addressInfo)
+                .items(items)
+                .summary(summaryInfo)
+                .build();
+    }
+
+    //마스킹 메서드
+    //명세서 조건에 맞춰 01012345678이라면 010-****-5678로 반환
+    private String maskPhone(String phone){
+        //전화번호 조건에 안 맞는 정보가 들어온다면 그대로 반환
+        if(phone==null || !phone.matches("\\d{11}")) return phone;
+        return phone.substring(0,3) + "-****-" + phone.substring(7);
+    }
+
+    //OrderDetail을 응답 상품 정보로 변환하는 메서드
+    private OrderDetailResponse.OrderItemInfo toOrderItemInfo(OrderDetail detail){
+        int originalPrice = detail.getPrice();
+        int salePrice = detail.getDiscountPrice();
+        int discountRate = originalPrice == 0 ? 0 : (originalPrice - salePrice) * 100 / originalPrice;
+
+        return OrderDetailResponse.OrderItemInfo.builder()
+                .productId(detail.getProduct().getId())
+                .productName(detail.getProduct().getName())
+                .thumbnail(detail.getProduct().getImage1())
+                .originalPrice(originalPrice)
+                .discountRate(discountRate)
+                .salePrice(salePrice)
+                .quantity(detail.getQuantity())
+                .totalPrice(salePrice * detail.getQuantity())
+                .build();
+    }
+
+    //주문 취소 로직. 배송 시작 전(PENDING/PAID/PREPARING)까지만 취소 가능
+    @Transactional //DB값을 수정해야하므로
+    public void cancelOrder(Long userId, Long orderId){
+        //주문을 조회하여 존재하지 않거나 userId와 일치하지 않는다면 404
+        Order order =orderRepository.findById(orderId)
+                .filter(o->o.getUserId().equals(userId))
+                .orElseThrow(() -> new CustomException(HttpStatus.NOT_FOUND, "주문을 찾을 수 없습니다."));
+
+        //이미 취소된 주문이라면 취소 불가
+        if (order.getOrderStatus()==OrderStatus.CANCELED){
+            throw new CustomException(HttpStatus.CONFLICT, "이미 취소된 주문은 취소할 수 없습니다.");
+        }
+
+        //배송 시작 이후인지 확인. 만약 그렇다면 취소불가
+        if (!isCancelable(order.getOrderStatus())){
+            throw new CustomException(HttpStatus.CONFLICT, "배송이 시작된 주문은 취소할 수 없습니다.");
+        }
+
+        //주문에 담긴 상품들의 재고를 복구
+        List<OrderDetail> details = orderDetailRepository.findByOrderId(orderId);
+        for (OrderDetail detail : details){
+            detail.getProduct().increaseStock(detail.getQuantity());
+        }
+
+        //주문을 취소해도 내역은 남아야하므로 상태만 CANCELED로 변경
+        order.updateOrderStatus(OrderStatus.CANCELED);
+    }
+
+    //취소 가능한 상태를 PENDING/PAID/PREPARING으로 지정하는 메서드
+    private boolean isCancelable(OrderStatus status){
+        return status == OrderStatus.PENDING
+                || status == OrderStatus.PAID
+                || status == OrderStatus.PREPARING;
+    }
+
+    //   배송 조회 로직
+    public DeliveryResponse getDelivery (Long userId,Long orderId){
+
+        //주문이 없거나 사용자가 동일하지 않으면 404
+        Order order = orderRepository.findById(orderId)
+                .filter(o -> o.getUserId().equals(userId))
+                .orElseThrow(() -> new CustomException(HttpStatus.NOT_FOUND, "배송 정보를 찾을 수 없습니다."));
+
+        String status = order.getOrderStatus().name();
+        //배송 시작 전이거나 취소된 주문이면 배송 정보가 없는걸로 처리
+        if(status == OrderStatus.DELIVERING.name() || status == OrderStatus.DELIVERED.name()){
+            throw new CustomException(HttpStatus.NOT_FOUND, "배송 정보를 찾을 수 없습니다.");
+        }
+
+        return DeliveryResponse.builder()
+                .orderId(order.getId())
+                .status(status)
+                .trackingNumber("1234567890")   //고정값 반환
+                .deliveryCompany("CJ대한통운")      //고정값 반환
+                .estimatedArrival(order.getCreatedAt().plusDays(5).toLocalDate())   //주문일 + 5일로 계산
+                .build();
+    }
+
 }

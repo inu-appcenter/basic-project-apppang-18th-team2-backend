@@ -64,4 +64,9 @@ public class Order extends BaseTimeEntity {
         this.orderStatus = orderStatus;
         this.paymentMethod = paymentMethod;
     }
+
+    //주문 취소가 발생했을 때 orderStatus만 단독으로 변경하는 메서드
+    public void updateOrderStatus(OrderStatus orderStatus){
+        this.orderStatus = orderStatus;
+    }
 }
