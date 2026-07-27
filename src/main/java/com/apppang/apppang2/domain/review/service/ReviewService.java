@@ -58,7 +58,7 @@ public class ReviewService {
             throw new CustomException(HttpStatus.CONFLICT,"본인의 주문 내역에만 작성할 수 있습니다.");
         }
 
-        //배송완료 상태에서만 리뷰를 작성할 수 있음
+        //결제완료된 상태에서만
         //if(orderDetail.getOrder().getOrderStatus()!= OrderStatus.DELIVERED || orderDetail.getOrder().getOrderStatus()!= OrderStatus.PAID){
         //    throw new CustomException(HttpStatus.FORBIDDEN,"구매한 상품만 리뷰를 작성할 수 있습니다.");
         //}
@@ -177,9 +177,6 @@ public class ReviewService {
     public ReviewLikeResponse helpedReview(Long reviewId, Long userId){
         Review review = reviewRepository.findById(reviewId)
                 .orElseThrow(()->new CustomException(HttpStatus.NOT_FOUND, "리뷰를 찾을 수 없습니다."));
-
-        //실제 DB를 날리지 않고 참조 객체만 가져옴
-        User user = userRepository.getReferenceById(userId);
 
         //특정 유저의 해당 리뷰 '도움돼요' 누름 상태 확인
         Optional<ReviewLike> existingLike = reviewLikeRepository.findByReviewIdAndUserId(reviewId, userId);
