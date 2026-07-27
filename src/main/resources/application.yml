@@ -18,6 +18,11 @@ spring:
     active: ${SPRING_PROFILES_ACTIVE:local}
     include: secret
 
+  servlet:
+    multipart:
+      max-file-size: 5MB
+      max-request-size: 12MB
+
 server:
   port: 8080
 
@@ -29,3 +34,9 @@ springdoc:
     path: /swagger-ui.html
     operations-sorter: method
     tags-sorter: alpha
+
+aws:
+  s3:
+    bucket: ${AWS_S3_BUCKET:dummy}
+    access-key: ${AWS_ACCESS_KEY_ID:dummy}
+    secret-key: ${AWS_SECRET_ACCESS_KEY:dummy}
