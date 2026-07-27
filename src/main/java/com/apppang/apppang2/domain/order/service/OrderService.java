@@ -10,7 +10,6 @@ import com.apppang.apppang2.domain.order.dto.response.OrderListResponse;
 import com.apppang.apppang2.domain.order.dto.response.OrderResponse;
 import com.apppang.apppang2.domain.order.dto.response.DeliveryResponse;
 import com.apppang.apppang2.domain.order.entity.*;
-import com.apppang.apppang2.domain.order.repository.DeliveryRepository;
 import com.apppang.apppang2.domain.order.repository.OrderDetailRepository;
 import com.apppang.apppang2.domain.order.repository.OrderRepository;
 import com.apppang.apppang2.domain.payment.entity.PaymentMethod;
@@ -27,7 +26,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -40,7 +38,6 @@ public class OrderService {
     private final ProductRepository productRepository;
     private final AddressRepository addressRepository;
     private final PaymentRepository paymentRepository; //결제 상태 조회도 하기 위해 추가
-    private final DeliveryRepository deliveryRepository; //배송 레포지토리 연결
 
     //주문 생성: 상품 검증 → 재고 차감 → 주문 저장 → 주문 상세 저장이 전부 한 트랜잭션
     //중간에 예외가 나면 원상복구됨
@@ -98,7 +95,7 @@ public class OrderService {
     }
 
     //주문 목록 조회 로직
-    @Transactional   //DB값을 수정할 수 있으므로 추가(배송)
+    //DB값을 수정할 수 있으므로 추가(배송)
     public OrderListResponse getMyOrders(Long userId, int page){
         //생성일 역순으로 정렬해서 10개씩 가져옴
         Pageable pageable = PageRequest.of(page, 10, Sort.by(Sort.Direction.DESC, "createdAt"));
@@ -106,7 +103,6 @@ public class OrderService {
 
         List<OrderResponse> orders = orderPage.getContent().stream()
                 .map(order -> {
-                    checkAndCreateDelivery(order);   //각 주문마다 배송 시작 조건 검증
                     return toOrderResponse(order);
                 })
                 .toList();
@@ -139,13 +135,10 @@ public class OrderService {
     }
 
     //주문 상세 조회 로직. 본인 주문이 아니거나 없으면 404 반환
-    @Transactional   //DB값을 수정할 수 있으므로 추가(배송)
     public OrderDetailResponse getOrderDetail(Long userId, Long orderId){
         Order order = orderRepository.findById(orderId)
                 .filter(o->o.getUserId().equals(userId))//주문 ID를 꺼내온 후 본인 주문이 아니라면 조회 실패
                 .orElseThrow(()-> new CustomException(HttpStatus.NOT_FOUND, "주문을 찾을 수 없습니다."));
-
-        checkAndCreateDelivery(order); //배송 시작 조건 검증(배송)
 
         //아직 결제 정보가 없다면 전부 null로 처리
         OrderDetailResponse.PaymentInfo paymentInfo = paymentRepository.findByOrderId(orderId)
@@ -232,6 +225,11 @@ public class OrderService {
                 .filter(o->o.getUserId().equals(userId))
                 .orElseThrow(() -> new CustomException(HttpStatus.NOT_FOUND, "주문을 찾을 수 없습니다."));
 
+        //이미 취소된 주문이라면 취소 불가
+        if (order.getOrderStatus()==OrderStatus.CANCELED){
+            throw new CustomException(HttpStatus.CONFLICT, "이미 취소된 주문은 취소할 수 없습니다.");
+        }
+
         //배송 시작 이후인지 확인. 만약 그렇다면 취소불가
         if (!isCancelable(order.getOrderStatus())){
             throw new CustomException(HttpStatus.CONFLICT, "배송이 시작된 주문은 취소할 수 없습니다.");
@@ -254,12 +252,7 @@ public class OrderService {
                 || status == OrderStatus.PREPARING;
     }
 
-    /*
-    배송 조회 로직
-    현재는 배송 도메인이 따로 없어 직접 DB를 건드리는게 아니면 배송 정보 지정이 불가능
-    임시로 일정시간이 지나면 배송 정보가 생성되게 구현
-     */
-    @Transactional  //DB값을 수정해야하므로 GET이지만 추가
+    //   배송 조회 로직
     public DeliveryResponse getDelivery (Long userId,Long orderId){
 
         //주문이 없거나 사용자가 동일하지 않으면 404
@@ -267,47 +260,19 @@ public class OrderService {
                 .filter(o -> o.getUserId().equals(userId))
                 .orElseThrow(() -> new CustomException(HttpStatus.NOT_FOUND, "배송 정보를 찾을 수 없습니다."));
 
-        //조회 시점에 배송 시작 조건을 검증
-        //조건 충족 시 배송 정보 생성
-        checkAndCreateDelivery(order);
-
-        Delivery delivery = deliveryRepository.findByOrderId(orderId)
-                .orElseThrow(() -> new CustomException(HttpStatus.NOT_FOUND, "배송 정보를 찾을 수 없습니다."));
+        String status = order.getOrderStatus().name();
+        //배송 시작 전이거나 취소된 주문이면 배송 정보가 없는걸로 처리
+        if(status == OrderStatus.DELIVERING.name() || status == OrderStatus.DELIVERED.name()){
+            throw new CustomException(HttpStatus.NOT_FOUND, "배송 정보를 찾을 수 없습니다.");
+        }
 
         return DeliveryResponse.builder()
                 .orderId(order.getId())
-                .status(delivery.getDeliveryStatus().name())
-                .trackingNumber(delivery.getTrackingNumber())
-                .deliveryCompany(delivery.getCourier())
-                .estimatedArrival(delivery.getCompletedAt().toLocalDate())
+                .status(status)
+                .trackingNumber("1234567890")   //고정값 반환
+                .deliveryCompany("CJ대한통운")      //고정값 반환
+                .estimatedArrival(order.getCreatedAt().plusDays(5).toLocalDate())   //주문일 + 5일로 계산
                 .build();
     }
 
-    //주문 조회 진입시 호출
-    //배송 시작 조건(주문 후 10분)을 검증하고 필요하다면 배송 정보를 생성함
-    private void checkAndCreateDelivery(Order order){
-
-        if (deliveryRepository.findByOrderId(order.getId()).isPresent()){
-            return;
-        }
-
-        //이미 배송 정보가 있다면 배송 정보를 생성하지 않음
-        LocalDateTime deliveryStartTime = order.getCreatedAt().plusMinutes(10);
-        if (LocalDateTime.now().isBefore(deliveryStartTime)){
-            return;
-        }
-
-        //10분 경과 + 아직 배송정보 없음 → 배송정보 생성 + Order 상태 동기화
-        Delivery delivery = Delivery.builder()
-                .order(order)
-                .trackingNumber("1234567890")
-                .deliveryStatus(DeliveryStatus.DELIVERING)
-                .courier("CJ대한통운")
-                .startedAt(deliveryStartTime)
-                .completedAt(deliveryStartTime.plusDays(3))
-                .build();
-        deliveryRepository.save(delivery);
-
-        order.updateOrderStatus(OrderStatus.DELIVERING);
-    }
 }
