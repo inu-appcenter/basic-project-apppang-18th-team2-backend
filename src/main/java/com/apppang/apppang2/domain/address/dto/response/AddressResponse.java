@@ -13,17 +13,17 @@ public class AddressResponse {
     private String roadAddress;
     private String detailAddress;
 
-    @JsonProperty("isDefault")  //이름 맞추기
-    private boolean isDefault;
+    @JsonProperty("isDefault")  //JSON으로 나갈때는 기존처럼 isDefault로 매핑
+    private boolean defaultAddress;
 
     @Builder
-    public AddressResponse(Long addressId, String receiver, String phone, String roadAddress, String detailAddress, boolean isDefault){
+    public AddressResponse(Long addressId, String receiver, String phone, String roadAddress, String detailAddress, boolean defaultAddress){
         this.addressId = addressId;
         this.receiver = receiver;
         this.phone = phone;
         this.roadAddress = roadAddress;
         this.detailAddress = detailAddress;
-        this.isDefault = isDefault;
+        this.defaultAddress = defaultAddress;
     }
 
     public static AddressResponse from(Address address){
@@ -33,7 +33,7 @@ public class AddressResponse {
                 .phone(address.getReceiverPhone())
                 .roadAddress(address.getRoadAddress())
                 .detailAddress(address.getDetailAddress())
-                .isDefault(address.isDefault())
+                .defaultAddress(address.isDefault())
                 .build();
     }
 }

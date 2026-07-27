@@ -13,6 +13,6 @@ public class AddressRequest {
     private String roadAddress;
     private String detailAddress;
 
-    @JsonProperty("isDefault")  //이름 맞추기
-    private boolean isDefault;
+    @JsonProperty("isDefault")  //JSON으로 나갈때는 기존처럼 isDefault로 매핑
+    private boolean defaultAddress;     //내부 필드명은 defaultAddress로
 }
