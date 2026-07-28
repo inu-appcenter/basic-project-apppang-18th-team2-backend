@@ -28,10 +28,7 @@ public class UserController {
 
         MyInfoResponse response = userService.getMyInfo(userId);
 
-        return ApiResponse.success(
-                "회원 정보를 조회했습니다.",
-                response
-        );
+        return ApiResponse.success("회원 정보를 조회했습니다.", response);
 
     }
 
@@ -45,10 +42,7 @@ public class UserController {
 
         userService.updateMyInfo(userId, request);
 
-        return ApiResponse.success(
-                "회원 정보가 수정되었습니다.",
-                null
-        );
+        return ApiResponse.success("회원 정보가 수정되었습니다.");
     }
 
     @Operation(summary = "회원 탈퇴")
@@ -59,8 +53,6 @@ public class UserController {
 
         userService.deleteMyInfo(userId);
 
-        return ApiResponse.success(
-                "회원 탈퇴가 완료되었습니다."
-        );
+        return ApiResponse.success("회원 탈퇴가 완료되었습니다.");
     }
 }
