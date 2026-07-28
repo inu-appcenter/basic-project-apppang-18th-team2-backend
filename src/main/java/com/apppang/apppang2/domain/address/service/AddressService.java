@@ -35,8 +35,11 @@ public class AddressService {
     @Transactional
     public Long addAddress(Long userId, AddressRequest request){
         //유저 조회
-        User user = userRepository.findById(userId)
-                .orElseThrow(()->new CustomException(HttpStatus.NOT_FOUND, "유저를 찾을 수 없습니다."));
+        //@AuthenticationPrincipal로 이미 검증된 값이라 불필요한 DB접근으로 판단됨 (롤백을 위해 주석처리만)
+//        User user = userRepository.findById(userId)
+//                .orElseThrow(()->new CustomException(HttpStatus.NOT_FOUND, "유저를 찾을 수 없습니다."));
+
+        User user = userRepository.getReferenceById(userId); //프록시로 처리
 
 
         //새로 추가할 주소가 기본배송지일 경우 기존에 등록된 기본배송지를 해제
@@ -112,7 +115,8 @@ public class AddressService {
     public void deleteAddress(Long userId, Long addressId){
         //삭제할 배송지 조회
         Address address = addressRepository.findById(addressId)
-                .orElseThrow(()->new CustomException(HttpStatus.BAD_REQUEST, "배송지를 찾을 수 없습니다."));
+                //다른 응답과 상태코드가 달라 404로 통일
+                .orElseThrow(()->new CustomException(HttpStatus.NOT_FOUND, "배송지를 찾을 수 없습니다."));
 
         //배송지가 로그인한 유저의 것이 맞는지 권한 확인
         if(!address.getUser().getId().equals(userId)){

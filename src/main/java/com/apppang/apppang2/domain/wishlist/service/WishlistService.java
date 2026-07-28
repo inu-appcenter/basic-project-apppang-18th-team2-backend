@@ -1,6 +1,5 @@
 package com.apppang.apppang2.domain.wishlist.service;
 
-import com.apppang.apppang2.domain.address.entity.Address;
 import com.apppang.apppang2.domain.product.dto.response.ProductResponse;
 import com.apppang.apppang2.domain.product.entity.Product;
 import com.apppang.apppang2.domain.product.repository.ProductRepository;
