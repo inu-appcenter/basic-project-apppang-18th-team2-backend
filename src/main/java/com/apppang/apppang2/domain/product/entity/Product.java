@@ -97,4 +97,9 @@ public class Product extends BaseTimeEntity {
         this.stock += quantity;
     }
 
+    //discountRate가 null이라면 0으로 처리. DTO에서 별도 처리를 하지 않아도 되도록 하는 캡슐화
+    public int getDiscountRateOrZero() {
+        return discountRate == null ? 0 : discountRate;
+    }
+
 }
