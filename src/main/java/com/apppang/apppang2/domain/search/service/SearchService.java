@@ -2,6 +2,8 @@ package com.apppang.apppang2.domain.search.service;
 
 import com.apppang.apppang2.global.exception.CustomException;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataAccessException;
 import org.springframework.data.domain.Range;
 import org.springframework.data.redis.connection.Limit;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -11,6 +13,7 @@ import org.springframework.stereotype.Service;
 import java.util.List;
 import java.util.Set;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class SearchService {
@@ -30,20 +33,30 @@ public class SearchService {
 
         String prefix = keyword.trim().toLowerCase();
 
-        //ZRANGEBYLEX: 사전순으로 정렬된 집합에서 prefix로 시작하는 구간만 잘라 조회
-        //prefix로 시작하는 모든 문자열의 상한선
-        Set<String> members = redisTemplate.opsForZSet().rangeByLex(
-                AUTOCOMPLETE_KEY,
-                Range.closed(prefix, prefix + "\uffff"),
-                Limit.limit().count(10));
-
-        if (members == null) {
+        //100자 넘는 검색어는 존재할 수 없는 상품명으로 "결과 없음"과 동일 취급
+        if (prefix.length() > 100) {
             return List.of();
         }
 
-        //"소문자<구분자>원본"에서 원본 이름만 추출해 반환
-        return members.stream()
-                .map(m -> m.substring(m.indexOf(SEPARATOR) + 1))
-                .toList();
+        try {
+            //prefix로 시작하는 모든 문자열의 상한선
+            //사전순으로 정렬된 집합에서 prefix로 시작하는 구간만 잘라 조회
+            Set<String> members = redisTemplate.opsForZSet().rangeByLex(
+                    AUTOCOMPLETE_KEY,
+                    Range.closed(prefix, prefix + "\uffff"),
+                    Limit.limit().count(10));
+
+            if (members == null) {
+                return List.of();
+            }
+            //"소문자<구분자>원본"에서 원본 이름만 추출해 반환
+            return members.stream()
+                    .map(m -> m.substring(m.indexOf(SEPARATOR) + 1))
+                    .toList();
+        } catch (DataAccessException e) {
+            //Redis 장애가 검색창을 죽이면 안 되므로 빈 결과로 대체
+            log.warn("자동완성 조회 실패 — Redis 연결 확인 필요", e);
+            return List.of();
+        }
     }
 }
