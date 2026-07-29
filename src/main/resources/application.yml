@@ -45,3 +45,6 @@ aws:
     bucket: ${AWS_S3_BUCKET:dummy}
     access-key: ${AWS_ACCESS_KEY_ID:dummy}
     secret-key: ${AWS_SECRET_ACCESS_KEY:dummy}
+
+frontend:
+  url: ${FRONTEND_URL:http://localhost:5173}

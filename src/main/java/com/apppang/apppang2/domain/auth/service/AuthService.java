@@ -11,10 +11,13 @@ import com.apppang.apppang2.domain.user.entity.User;
 import com.apppang.apppang2.domain.user.repository.UserRepository;
 import com.apppang.apppang2.global.exception.CustomException;
 import com.apppang.apppang2.global.util.JwtUtil;
+import io.jsonwebtoken.JwtException;
+import org.springframework.beans.factory.annotation.Value;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.http.HttpStatus;
+import org.springframework.mail.MailException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -33,6 +36,8 @@ public class AuthService {
     private final StringRedisTemplate redisTemplate;
     private final MailService mailService;
 
+    @Value("${frontend.url:http://localhost:5173}")
+    private String frontendUrl;
 
     //컨트롤러의 최종 응답을 위해 DB에 저장된 후 발급된 userId(Long)를 반환
     @Transactional
@@ -71,7 +76,7 @@ public class AuthService {
 
         //사용자 확인 (없으면 예외 발생)
         User user = userRepository.findByEmailAndDeletedFalse(request.getEmail())
-                .orElseThrow(() -> new CustomException(HttpStatus.UNAUTHORIZED, "가입되지 않은 이메일입니다."));
+                .orElseThrow(() -> new CustomException(HttpStatus.UNAUTHORIZED, "이메일 또는 비밀번호가 올바르지 않습니다."));
 
         //비밀번호 검증 (암호화된 비번과 비교)
         if (!bCryptPasswordEncoder.matches(request.getPassword(), user.getPassword())) {
@@ -123,15 +128,20 @@ public class AuthService {
     //비밀번호 찾기
     public void sendResetMail(String email){
         //유저 찾기
-        User user = userRepository.findByEmail(email)
+        User user = userRepository.findByEmailAndDeletedFalse(email)
                 .orElseThrow(()->new CustomException(HttpStatus.NOT_FOUND, "일치하는 회원 정보를 찾을 수 없습니다."));
 
         //재설정 토큰을 Redis에 10분 만료기간으로 저장 (key=토큰, value=userId)
         String token = UUID.randomUUID().toString();
         redisTemplate.opsForValue().set("pwreset:" + token, String.valueOf(user.getId()), Duration.ofMinutes(10));
 
-        String resetLink = "http://localhost:5173/password-reset?token=" + token;
-        mailService.sendResetPAsswordEmail(user.getEmail(), resetLink);
+        String resetLink = frontendUrl + "/password-reset?token=" + token;
+
+        try {
+            mailService.sendResetPasswordEmail(user.getEmail(), resetLink);
+        } catch (MailException e) {
+            throw new CustomException(HttpStatus.INTERNAL_SERVER_ERROR, "메일 발송에 실패했습니다. 잠시 후 다시 시도해주세요.");
+        }
     }
 
     //토큰 검증 및 새 비밀번호로 변경 요청
@@ -152,14 +162,21 @@ public class AuthService {
 
         //사용 완료된 토큰 삭제
         redisTemplate.delete("pwreset:" + token);
+        //기존 refresh 토큰 삭제
+        redisTemplate.delete("refresh:" + user.getId());
     }
 
     //토큰 재발급
     public TokenDto reissueToken(String oldRefreshToken){
-        //서명 검증 겸 userId 추출 — 위조 토큰은 여기서 예외 발생
-        Long userId = Long.valueOf(jwtUtil.getClaims(oldRefreshToken).getSubject());
+        //서명 검증 겸 userId 추출 — 위조, 만료 토큰은 JWT 예외를 401로 변환
+        Long userId;
+        try {
+            userId = Long.valueOf(jwtUtil.getClaims(oldRefreshToken).getSubject());
+        } catch (JwtException | IllegalArgumentException e) {
+            throw new CustomException(HttpStatus.UNAUTHORIZED, "유효하지 않거나 만료된 Refresh Token입니다.");
+        }
 
-        //Redis 저장본과 대조, 없으면 로그아웃됐거나 14일 기간만료된 것
+        //Redis 저장본과 대조, 없으면 로그아웃됐거나 토큰만료, 비밀번호 변경
         String saved = redisTemplate.opsForValue().get("refresh:" + userId);
         if (saved == null || !saved.equals(oldRefreshToken)){
             throw new CustomException(HttpStatus.UNAUTHORIZED, "유효하지 않거나 만료된 Refresh Token입니다.");
