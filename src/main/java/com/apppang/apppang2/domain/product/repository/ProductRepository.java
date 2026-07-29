@@ -1,9 +1,11 @@
 package com.apppang.apppang2.domain.product.repository;
 
 import com.apppang.apppang2.domain.product.entity.Product;
+import jakarta.persistence.LockModeType;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -26,4 +28,7 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
                           @Param("event") String event,
                           Pageable pageable);
 
+    //조회 시점에 비관적 락을 걸어 동시 주문 시 재고가 꼬이는 것을 방지
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    List<Product> findAllByIdIn(List<Long> ids);
 }

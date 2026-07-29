@@ -12,22 +12,23 @@ import com.apppang.apppang2.domain.order.dto.response.DeliveryResponse;
 import com.apppang.apppang2.domain.order.entity.*;
 import com.apppang.apppang2.domain.order.repository.OrderDetailRepository;
 import com.apppang.apppang2.domain.order.repository.OrderRepository;
+import com.apppang.apppang2.domain.payment.entity.Payment;
 import com.apppang.apppang2.domain.payment.entity.PaymentMethod;
 import com.apppang.apppang2.domain.payment.repository.PaymentRepository;
 import com.apppang.apppang2.domain.product.entity.Product;
 import com.apppang.apppang2.domain.product.repository.ProductRepository;
 import com.apppang.apppang2.global.exception.CustomException;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
+import org.springframework.data.domain.*;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -48,21 +49,34 @@ public class OrderService {
         Address address = addressRepository.findByIdAndUserId(request.getAddressId(), userId)
                 .orElseThrow(() -> new CustomException(HttpStatus.NOT_FOUND, "배송지를 찾을 수 없습니다."));
 
-        //2. 상품 검증 + 재고 차감 + 총액 계산 (상세 저장에 쓸 상품들을 순서대로 보관)
-        List<Product> products = new ArrayList<>();
+        //주문 상품ID 목록 추출
+        List<Long> productIds = request.getItems().stream()
+                .map(OrderItemRequest::getProductId)
+                .sorted()       //상품ID 리스트를 오름차순으로 정렬하여 동일한 순서로 락을 획득
+                .toList();
+
+        //동시성 제어를 위해 비관적 락 적용하여 DB 쿼리 1번으로 필요한 상품을 일괄 조회
+        List<Product> products = productRepository.findAllByIdIn(productIds);
+
+        //상품 찾아오기(요청된 상품 개수와 실제 조회된 개수가 다르면 예외처리)
+        Map<Long, Product> productMap = products.stream()
+                .collect(Collectors.toMap(Product::getId, p->p));
+
         int totalPrice = 0;
 
+        //2. 상품 검증 + 재고 차감 + 총액 계산 (상세 저장에 쓸 상품들을 순서대로 보관)
         for (OrderItemRequest item : request.getItems()){
-            Product product = productRepository.findById(item.getProductId())
-                    .orElseThrow(() -> new CustomException(HttpStatus.NOT_FOUND, "상품을 찾을 수 없습니다."));
+            Product product = productMap.get(item.getProductId());
+            if(product==null){
+                throw new CustomException(HttpStatus.NOT_FOUND, "상품을 찾을 수 없습니다.");
+            }
 
             if (product.getStock() < item.getQuantity()){
                 throw new CustomException(HttpStatus.CONFLICT, "재고가 부족합니다.");
             }
 
             product.decreaseStock(item.getQuantity());      //재고 감소
-            totalPrice += product.getSalePrice() * item.getQuantity();
-            products.add(product);
+            totalPrice += product.getSalePrice() * item.getQuantity();  //총 결제 금액 누적 계산(할인가 기준)
         }
 
         //3. 주문 저장 (총액 계산이 끝난 뒤에야 저장 가능)
@@ -79,12 +93,12 @@ public class OrderService {
 
         //4. 주문 상세 저장 (주문 당시 가격을 스냅샷으로 복사)
         List<OrderDetail> details = new ArrayList<>();
-        for (int i = 0; i < request.getItems().size(); i++){
-            Product product = products.get(i);
+        for (OrderItemRequest item : request.getItems()){
+            Product product = productMap.get(item.getProductId());  //상품ID로 Map에서 꺼냄
             details.add(OrderDetail.builder()
                     .order(order)
                     .product(product)
-                    .quantity(request.getItems().get(i).getQuantity())
+                    .quantity(item.getQuantity())
                     .price(product.getPrice())
                     .discountPrice(product.getSalePrice())
                     .build());
@@ -99,28 +113,46 @@ public class OrderService {
     public OrderListResponse getMyOrders(Long userId, int page){
         //생성일 역순으로 정렬해서 10개씩 가져옴
         Pageable pageable = PageRequest.of(page, 10, Sort.by(Sort.Direction.DESC, "createdAt"));
-        Page<Order> orderPage = orderRepository.findByUserId(userId, pageable);
+        Slice<Order> orderSlice = orderRepository.findByUserId(userId, pageable);
 
-        List<OrderResponse> orders = orderPage.getContent().stream()
-                .map(order -> {
-                    return toOrderResponse(order);
-                })
+        List<Order> orders = orderSlice.getContent();
+        //조회된 주문이 없는 경우 빈 리스트 반환
+        if(orders.isEmpty()){
+            return new OrderListResponse(Collections.emptyList(), page, orderSlice.hasNext());
+        }
+
+        //현재 페이지에 노출할 주문들의 ID만 추출
+        List<Long> orderIds = orders.stream()
+                .map(Order::getId)
                 .toList();
 
-        return new OrderListResponse(orders, page, orderPage.hasNext());
+        //IN절을 사용하여 주문 상세와 결제 정보를 각각 1번의 쿼리로 조회
+        Map<Long, List<OrderDetail>> orderDetailMap = orderDetailRepository.findByOrderIdInWithProduct(orderIds).stream()
+                .collect(Collectors.groupingBy(detail->detail.getOrder().getId()));
+
+        Map<Long, Payment> paymentMap = paymentRepository.findByOrderIdIn(orderIds).stream()
+                .collect(Collectors.toMap(payment->payment.getOrder().getId(), payment -> payment));
+
+        //기존 메서드를 활용하되 Map을 넘겨주어 추가 쿼리 없이 DTO 조합 -- 설명하고 지우기
+        List<OrderResponse> orderResponses = orders.stream()
+                .map(order -> toOrderResponse(order, orderDetailMap, paymentMap))
+                .toList();
+
+        return new OrderListResponse(orderResponses, page, orderSlice.hasNext());
     }
 
     //주문 엔티티 하나를 응답 DTO로 변환하는 메소드
-    private OrderResponse toOrderResponse (Order order){
-        //주문에 담긴 상품 상세 목록
-        //대표 상품은 첫번째 상품으로 설정함
-        List<OrderDetail> details = orderDetailRepository.findByOrderId(order.getId());
-        Product representativeProduct = details.get(0).getProduct();
+    private OrderResponse toOrderResponse (Order order, Map<Long, List<OrderDetail>> orderDetailMap,
+                                           Map<Long, Payment> paymentMap ){
+        //Map에서 현재 주문ID에 해당하는 상세 상품 목록 추출
+        List<OrderDetail> details = orderDetailMap.getOrDefault(order.getId(),Collections.emptyList());
 
-        //결제 전이라면 Payment가 없으므로 null
-        String paymentStatus = paymentRepository.findByOrderId(order.getId())
-                .map(payment -> payment.getStatus().name())
-                .orElse(null);
+        //대표 상품은 첫번째 상품으로 설정함
+        Product representativeProduct = details.isEmpty() ? null : details.get(0).getProduct();
+
+        //Map에서 현재 주문ID에 해당하는 결제 정보 추출
+        Payment payment = paymentMap.get(order.getId());
+        String paymentStatus = (payment!=null) ? payment.getStatus().name() : null;
 
         return OrderResponse.builder()
                 .orderId(order.getId())
@@ -128,8 +160,8 @@ public class OrderService {
                 .orderStatus(order.getOrderStatus().name())   //기존 OrderStatus enum 값 그대로 사용
                 .paymentStatus(paymentStatus)
                 .totalPrice(order.getTotalPrice())
-                .thumbnail(representativeProduct.getImage1())
-                .productName(representativeProduct.getName())
+                .thumbnail(representativeProduct != null ? representativeProduct.getImage1():null)
+                .productName(representativeProduct != null ? representativeProduct.getName():"상품정보없음")
                 .itemCount(details.size())
                 .build();
     }
@@ -224,7 +256,6 @@ public class OrderService {
         Order order =orderRepository.findById(orderId)
                 .filter(o->o.getUserId().equals(userId))
                 .orElseThrow(() -> new CustomException(HttpStatus.NOT_FOUND, "주문을 찾을 수 없습니다."));
-
         //이미 취소된 주문이라면 취소 불가
         if (order.getOrderStatus()==OrderStatus.CANCELED){
             throw new CustomException(HttpStatus.CONFLICT, "이미 취소된 주문은 취소할 수 없습니다.");
@@ -260,15 +291,15 @@ public class OrderService {
                 .filter(o -> o.getUserId().equals(userId))
                 .orElseThrow(() -> new CustomException(HttpStatus.NOT_FOUND, "배송 정보를 찾을 수 없습니다."));
 
-        String status = order.getOrderStatus().name();
+        OrderStatus status = order.getOrderStatus();
         //배송 시작 전이거나 취소된 주문이면 배송 정보가 없는걸로 처리
-        if(status == OrderStatus.DELIVERING.name() || status == OrderStatus.DELIVERED.name()){
+        if(status != OrderStatus.DELIVERING && status != OrderStatus.DELIVERED){
             throw new CustomException(HttpStatus.NOT_FOUND, "배송 정보를 찾을 수 없습니다.");
         }
 
         return DeliveryResponse.builder()
                 .orderId(order.getId())
-                .status(status)
+                .status(status.name())
                 .trackingNumber("1234567890")   //고정값 반환
                 .deliveryCompany("CJ대한통운")      //고정값 반환
                 .estimatedArrival(order.getCreatedAt().plusDays(5).toLocalDate())   //주문일 + 5일로 계산
