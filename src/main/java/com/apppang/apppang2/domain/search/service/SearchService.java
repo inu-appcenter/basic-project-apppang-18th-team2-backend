@@ -20,6 +20,7 @@ public class SearchService {
 
     //자동완성 색인이 저장되는 Redis 키
     public static final String AUTOCOMPLETE_KEY = "search:autocomplete";
+    public static final String POPULAR_KEY = "search:popular";
     //멤버 형식: "소문자이름<구분자>원본이름" — 검색은 소문자로, 표시는 원본으로
     public static final String SEPARATOR = "\u0001";
 
@@ -57,6 +58,29 @@ public class SearchService {
             //Redis 장애가 검색창을 죽이면 안 되므로 빈 결과로 대체
             log.warn("자동완성 조회 실패 — Redis 연결 확인 필요", e);
             return List.of();
+        }
+    }
+
+    //검색 실행 시 호출 — 해당 키워드 점수 +1
+    public void recordKeyword(String keyword){String trimmed = keyword.trim();
+        //비었거나 비정상적으로 긴 검색어는 집계 제외
+        if (trimmed.isEmpty() || trimmed.length() > 30) {
+            return;
+        }
+        try {
+            redisTemplate.opsForZSet().incrementScore(POPULAR_KEY, trimmed, 1);
+        } catch (DataAccessException e) {
+            log.warn("인기 검색어 기록 실패 Redis 연결 확인 필요", e);
+        }
+    }
+
+    //인기 검색어 톱 8
+    public List<String> getPopularKeywords(){
+        try {
+            Set<String> top = redisTemplate.opsForZSet().reverseRange(POPULAR_KEY, 0, 7);
+            return top == null ? List.of() : List.copyOf(top);
+        } catch (DataAccessException e) {
+            return List.of();   //Redis 장애 시 빈 목록
         }
     }
 }

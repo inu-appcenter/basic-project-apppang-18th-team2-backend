@@ -88,6 +88,7 @@ public class ReviewService {
                 .build();
 
         Review savedReview = reviewRepository.save(review);
+        refreshProductRating(orderDetail.getProduct().getId());
         return savedReview.getId();
     }
 
@@ -165,6 +166,7 @@ public class ReviewService {
         }
 
         review.update(request.getRating(), content, url1, url2 );
+        refreshProductRating(review.getProductId());
     }
 
     //리뷰 삭제
@@ -184,6 +186,7 @@ public class ReviewService {
 
         //DB에서 완전 삭제
         reviewRepository.delete(review);
+        refreshProductRating(review.getProductId());
     }
 
     //도움돼요
@@ -216,5 +219,15 @@ public class ReviewService {
                 .liked(liked)
                 .helpCount(review.getHelpCount())
                 .build();
+    }
+
+    //해당 상품의 평점,리뷰 수를 재집계해 상품에 반영
+    private void refreshProductRating(Long productId){
+        productRepository.findById(productId).ifPresent(product -> {
+            Double avg = reviewRepository.averageRatingByProductId(productId);
+            int count = (int) reviewRepository.countByProductId(productId);
+            //표시용 소수 첫째 자리 반올림, 리뷰가 없으면 0
+            product.updateRating(avg == null ? 0 : Math.round(avg * 10) / 10.0, count);
+        });
     }
 }

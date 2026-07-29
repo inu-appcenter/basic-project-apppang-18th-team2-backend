@@ -18,7 +18,7 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
     @Query("""
             SELECT p FROM Product p
             WHERE (:keyword IS NULL OR p.name LIKE CONCAT('%', :keyword, '%'))
-              AND (:categoryId IS NULL OR p.categoryId = :categoryId)
+              AND (:categoryId IS NULL OR p.category.id = :categoryId)
               AND (:discountOnly = FALSE OR p.discountRate > 0)
               AND (:event IS NULL OR :event MEMBER OF p.events)
             """)

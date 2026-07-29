@@ -5,6 +5,7 @@ import com.apppang.apppang2.domain.product.dto.response.ProductListResponse;
 import com.apppang.apppang2.domain.product.dto.response.ProductResponse;
 import com.apppang.apppang2.domain.product.entity.Product;
 import com.apppang.apppang2.domain.product.repository.ProductRepository;
+import com.apppang.apppang2.domain.search.service.SearchService;
 import com.apppang.apppang2.global.exception.CustomException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
@@ -23,6 +24,7 @@ public class ProductService {
     private static final int PAGE_SIZE = 30;    //조회 개수 30개 고정
 
     private final ProductRepository productRepository;
+    private final SearchService searchService;
 
     //상품 목록 조회 로직
     public ProductListResponse getProducts(String keyword, Long categoryId,
@@ -30,6 +32,12 @@ public class ProductService {
         if (page < 0){
             throw new CustomException(HttpStatus.BAD_REQUEST, "잘못된 조회 조건입니다.");
         }
+
+        //검색 실행 시 인기 검색어 점수 +1 (키워드 없는 목록 조회는 반영 X)
+        if (page == 0 && keyword != null && !keyword.trim().isEmpty()) {
+            searchService.recordKeyword(keyword);
+        }
+
 
         Pageable pageable = PageRequest.of(page, PAGE_SIZE, toSort(sort)); //각 페이지에 30개 씩 조회
         //필터+정렬+페이징이 적용된 상품 30개(이하)를 레포지토리에서 호출
