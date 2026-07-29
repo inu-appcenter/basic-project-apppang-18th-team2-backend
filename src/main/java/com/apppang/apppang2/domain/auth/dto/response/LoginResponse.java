@@ -1,6 +1,7 @@
 package com.apppang.apppang2.domain.auth.dto.response;
 
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.Builder;
 import lombok.Getter;
 
@@ -8,6 +9,7 @@ import lombok.Getter;
 @Builder
 public class LoginResponse {
     private String accessToken;
+    @JsonIgnore
     private String refreshToken;
     private UserInfo user;      //응답 데이터 구조의 user
 

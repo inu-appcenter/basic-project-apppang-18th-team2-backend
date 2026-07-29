@@ -1,6 +1,7 @@
 package com.apppang.apppang2.domain.review.service;
 
 import com.apppang.apppang2.domain.order.entity.OrderDetail;
+import com.apppang.apppang2.domain.order.entity.OrderStatus;
 import com.apppang.apppang2.domain.order.repository.OrderDetailRepository;
 import com.apppang.apppang2.domain.product.repository.ProductRepository;
 import com.apppang.apppang2.domain.review.dto.request.ReviewCreateRequest;
@@ -43,25 +44,24 @@ public class ReviewService {
         OrderDetail orderDetail = orderDetailRepository.findByOrderIdAndProductId(request.getOrderId(), request.getProductId())
                 .orElseThrow(()->new CustomException(HttpStatus.NOT_FOUND,"주문내역을 찾을 수 없습니다."));
 
-        //해당 주문상세내역에 대한 리뷰가 존재하는지 중복검사
+        //본인의 주문인지 검증
+        if(!orderDetail.getOrder().getUserId().equals(userId)){
+            throw new CustomException(HttpStatus.FORBIDDEN,"본인의 주문 내역에만 작성할 수 있습니다.");
+        }
+
+        //주문 상태 검증 — 결제 전(PENDING)·취소(CANCELED)된 주문에는 리뷰 작성 불가
+        OrderStatus status = orderDetail.getOrder().getOrderStatus();
+        if (status == OrderStatus.PENDING || status == OrderStatus.CANCELED) {
+            throw new CustomException(HttpStatus.FORBIDDEN, "결제 완료된 주문만 리뷰를 작성할 수 있습니다.");
+        }
+
+        //해당 주문 상세 내역에 대한 리뷰가 존재하는지 중복검사
         if(reviewRepository.existsByOrderDetailId(orderDetail.getId())){
             throw new CustomException(HttpStatus.BAD_REQUEST,"이미 리뷰를 작성한 주문입니다.");
         }
 
-        //유저 존재 검증
-        User user = userRepository.findById(userId)
-                .orElseThrow(()->new CustomException(HttpStatus.NOT_FOUND, "유저를 찾을 수 없습니다."));
-
-
-        //본인의 주문 내역인지 검증(OrderDetail->Order->userId가 리뷰작성의 userId와 맞는지 확인)
-        if(!orderDetail.getOrder().getUserId().equals(userId)){
-            throw new CustomException(HttpStatus.CONFLICT,"본인의 주문 내역에만 작성할 수 있습니다.");
-        }
-
-        //결제완료된 상태에서만
-        //if(orderDetail.getOrder().getOrderStatus()!= OrderStatus.DELIVERED || orderDetail.getOrder().getOrderStatus()!= OrderStatus.PAID){
-        //    throw new CustomException(HttpStatus.FORBIDDEN,"구매한 상품만 리뷰를 작성할 수 있습니다.");
-        //}
+        //저장용 User 참조
+        User user = userRepository.getReferenceById(userId);
 
         //사진이 한장도 오지 않으면 null 상태로 저장
         String url1 = null;
@@ -94,9 +94,6 @@ public class ReviewService {
     //리뷰 조회
     @Transactional(readOnly = true)
     public ReviewListResponse getReviews(Long productId, Long userId, Pageable pageable) {
-        User user = userRepository.findById(userId)
-                .orElseThrow(()->new CustomException(HttpStatus.NOT_FOUND, "유저를 찾을 수 없습니다."));
-
         if(!productRepository.existsById(productId)){
             throw new CustomException(HttpStatus.NOT_FOUND, "상품을 찾을 수 없습니다.");
         }
@@ -108,12 +105,14 @@ public class ReviewService {
                 .map(Review::getId)
                 .toList();
 
+        //로그인 유저의 도움돼요를 누른 리뷰ID 목록 조회, 비로그인 유저는 false처리
+        Set<Long> likedReviewIds = (userId == null)
+                ? Collections.emptySet()
+                : getLikedReviewIds(userId, reviewIds);
 
-        //로그인 유저의 도움돼요를 누른 리뷰ID 목록 조회
-        Set<Long> likedReviewIds = getLikedReviewIds(userId, reviewIds);
 
         List<ReviewDetailResponse> reviewDetails = reviews.getContent().stream()
-                .map(like -> ReviewDetailResponse.of(like, user, likedReviewIds.contains(like.getId())))
+                .map(like -> ReviewDetailResponse.of(like, like.getUser(), likedReviewIds.contains(like.getId())))
                         .toList();  //리스트 형태로 반환
 
         //최종적으로 페이징 정보와 함께 묶어서 반환

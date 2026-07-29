@@ -12,6 +12,7 @@ public class ReviewCreateRequest {
     @NotNull(message = "주문 번호는 필수입니다.")
     private Long orderId;
 
+    @NotNull(message = "상품 번호는 필수입니다.")
     private Long productId;
 
     @NotNull(message = "별점은 필수입니다.")
