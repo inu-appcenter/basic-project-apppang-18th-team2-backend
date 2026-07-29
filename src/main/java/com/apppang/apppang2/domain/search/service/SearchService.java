@@ -62,11 +62,15 @@ public class SearchService {
     }
 
     //검색 실행 시 호출 — 해당 키워드 점수 +1
-    public void recordKeyword(String keyword){
+    public void recordKeyword(String keyword){String trimmed = keyword.trim();
+        //비었거나 비정상적으로 긴 검색어는 집계 제외
+        if (trimmed.isEmpty() || trimmed.length() > 30) {
+            return;
+        }
         try {
-            redisTemplate.opsForZSet().incrementScore(POPULAR_KEY, keyword.trim(), 1);
+            redisTemplate.opsForZSet().incrementScore(POPULAR_KEY, trimmed, 1);
         } catch (DataAccessException e) {
-            log.warn("인기 검색어 기록 실패", e);   //집계 실패가 검색 자체를 막으면 안 됨
+            log.warn("인기 검색어 기록 실패 Redis 연결 확인 필요", e);
         }
     }
 

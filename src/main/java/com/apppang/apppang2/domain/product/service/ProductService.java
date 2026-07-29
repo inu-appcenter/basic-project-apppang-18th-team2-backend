@@ -34,9 +34,10 @@ public class ProductService {
         }
 
         //검색 실행 시 인기 검색어 점수 +1 (키워드 없는 목록 조회는 반영 X)
-        if (keyword != null && !keyword.trim().isEmpty()) {
+        if (page == 0 && keyword != null && !keyword.trim().isEmpty()) {
             searchService.recordKeyword(keyword);
         }
+
 
         Pageable pageable = PageRequest.of(page, PAGE_SIZE, toSort(sort)); //각 페이지에 30개 씩 조회
         //필터+정렬+페이징이 적용된 상품 30개(이하)를 레포지토리에서 호출
