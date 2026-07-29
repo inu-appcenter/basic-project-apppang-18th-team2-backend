@@ -276,11 +276,12 @@ public class OrderService {
         order.updateOrderStatus(OrderStatus.CANCELED);
     }
 
-    //취소 가능한 상태를 PENDING/PAID/PREPARING으로 지정하는 메서드
+    //취소 가능한 상태를 PENDING/PAID/PREPARING/DELIVERING으로 지정하는 메서드
     private boolean isCancelable(OrderStatus status){
         return status == OrderStatus.PENDING
                 || status == OrderStatus.PAID
-                || status == OrderStatus.PREPARING;
+                || status == OrderStatus.PREPARING
+                || status == OrderStatus.DELIVERING;
     }
 
     //   배송 조회 로직
