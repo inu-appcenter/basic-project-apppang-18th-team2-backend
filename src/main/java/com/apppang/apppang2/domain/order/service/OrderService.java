@@ -56,7 +56,7 @@ public class OrderService {
                 .toList();
 
         //동시성 제어를 위해 비관적 락 적용하여 DB 쿼리 1번으로 필요한 상품을 일괄 조회
-        List<Product> products = productRepository.findAllByIdIn(productIds);
+        List<Product> products = productRepository.findAllByIdWithLock(productIds);
 
         //상품 찾아오기(요청된 상품 개수와 실제 조회된 개수가 다르면 예외처리)
         Map<Long, Product> productMap = products.stream()

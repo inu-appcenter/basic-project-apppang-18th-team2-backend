@@ -28,7 +28,12 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
                           @Param("event") String event,
                           Pageable pageable);
 
-    //조회 시점에 비관적 락을 걸어 동시 주문 시 재고가 꼬이는 것을 방지
+    // 결제 재고 차감에 사용할 Lock
+    // 안정성을 챙기기 위해 비관적 락으로 동시성 제어
     @Lock(LockModeType.PESSIMISTIC_WRITE)
-    List<Product> findAllByIdIn(List<Long> ids);
+    //ORDER BY p.id ASC로 항상 아이디순으로 락을 걸게하여 데드락을 방지
+    @Query("SELECT p FROM Product p WHERE p.id IN :ids ORDER BY p.id ASC")
+    List<Product> findAllByIdWithLock(@Param("ids") List<Long> ids);
+
+
 }

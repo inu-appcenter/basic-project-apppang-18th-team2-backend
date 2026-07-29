@@ -11,6 +11,8 @@ import com.apppang.apppang2.domain.payment.dto.PaymentResponse;
 import com.apppang.apppang2.domain.payment.entity.Payment;
 import com.apppang.apppang2.domain.payment.entity.PaymentStatus;
 import com.apppang.apppang2.domain.payment.repository.PaymentRepository;
+import com.apppang.apppang2.domain.product.entity.Product;
+import com.apppang.apppang2.domain.product.repository.ProductRepository;
 import com.apppang.apppang2.global.exception.CustomException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -18,6 +20,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -27,6 +31,7 @@ public class PaymentService {
     private final OrderDetailRepository orderDetailRepository;
     private final PaymentRepository paymentRepository;
     private final CartRepository cartRepository;
+    private final ProductRepository productRepository;
 
     @Transactional
     public PaymentResponse processPayment(Long userId, PaymentRequest request){
@@ -45,8 +50,22 @@ public class PaymentService {
 
         //재고 차감(OrderDetailRepository를 통해 상세 내역을 가져온다)
         List<OrderDetail> orderDetails = orderDetailRepository.findByOrderId(order.getId());
-        for(OrderDetail detail : orderDetails){
-            detail.getProduct().decreaseStock(detail.getQuantity());
+
+        //상품 ID 목록을 추출
+        List<Long> productIds = orderDetails.stream()
+                .map(d -> d.getProduct().getId())
+                .distinct() //중복 제거. 혹시 몰라서 추가. 지금 짜여진 로직대로면 필요없음
+                .toList();
+
+        //List로 하면 결과값과 현재 리스트를 처음부터 끝까지 비교하므로 O(n^2)이 되기에 Map 사용
+        //쿼리 1회 호출
+        Map<Long, Product> productMap = productRepository.findAllByIdWithLock(productIds).stream()
+                .collect(Collectors.toMap(Product::getId, p -> p));
+
+        for(OrderDetail detail: orderDetails){
+            //product가 null일 가능성은 낮다고 느껴서 null 체크를 생략 (후에 필요하다면 추가)
+            Product product = productMap.get(detail.getProduct().getId());
+            product.decreaseStock(detail.getQuantity());
         }
 
         //주문 상태 및 결제 수단 업데이트

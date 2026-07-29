@@ -11,7 +11,9 @@ import lombok.NoArgsConstructor;
 
 @Getter
 @Entity
-@Table(name = "wishlists")
+@Table(name = "wishlists",
+        //유니크 제약 추가. 사용자는 상품당 1개의 위시리스트만 생성가능
+        uniqueConstraints = @UniqueConstraint(columnNames = {"user_id", "product_id"}))
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Wishlist extends BaseTimeEntity {
     @Id

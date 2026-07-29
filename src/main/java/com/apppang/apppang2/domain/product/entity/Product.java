@@ -1,12 +1,14 @@
 package com.apppang.apppang2.domain.product.entity;
 
 import com.apppang.apppang2.global.common.BaseTimeEntity;
+import com.apppang.apppang2.global.exception.CustomException;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.Formula;
+import org.springframework.http.HttpStatus;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -81,14 +83,23 @@ public class Product extends BaseTimeEntity {
         this.ratingCount = 0;
     }
 
-    //주문 시 재고 차감 (재고 충분 여부는 서비스에서 검증 후 호출)
+    //주문 시 재고 차감
+    //재고를 차감할때는 재고 부족을 확인하고 부족하다면 예외를 발생함
     public void decreaseStock(int quantity){
+        if(this.stock < quantity){
+            throw new CustomException(HttpStatus.BAD_REQUEST, "재고보다 많은 수량을 담을 수 없습니다.");
+        }
         this.stock -= quantity;
     }
 
     //주문 취소시 재고 복구
     public void increaseStock(int quantity) {
         this.stock += quantity;
+    }
+
+    //discountRate가 null이라면 0으로 처리. DTO에서 별도 처리를 하지 않아도 되도록 하는 캡슐화
+    public int getDiscountRateOrZero() {
+        return discountRate == null ? 0 : discountRate;
     }
 
 }

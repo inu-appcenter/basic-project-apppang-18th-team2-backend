@@ -24,6 +24,7 @@ public class ProductService {
 
     private final ProductRepository productRepository;
 
+    //상품 목록 조회 로직
     public ProductListResponse getProducts(String keyword, Long categoryId,
                                            boolean discountOnly, String event, String sort, int page){
         if (page < 0){
@@ -55,6 +56,8 @@ public class ProductService {
         };
     }
 
+
+    //상품 상세 목록 조회 로직
     public ProductDetailResponse getProduct(Long productId){
         Product product = productRepository.findById(productId)
                 .orElseThrow(() ->
