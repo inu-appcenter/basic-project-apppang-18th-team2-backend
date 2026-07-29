@@ -71,7 +71,7 @@ public class CartService {
     public CartQuantityResponse updateQuantity(Long userId, Long cartItemId, int quantity){
         //내 장바구니 조회 — 없거나 남의 것이면 404
         Cart cart = cartRepository.findByIdAndUserId(cartItemId, userId)
-                .orElseThrow(() -> new CustomException(HttpStatus.NOT_FOUND, "상품을 찾을 수 없습니다."));
+                .orElseThrow(() -> new CustomException(HttpStatus.NOT_FOUND, "존재하지 않거나 접근할 수 없는 장바구니 항목입니다."));
 
         //재고 검사
         if (quantity > cart.getProduct().getStock()){
@@ -88,7 +88,7 @@ public class CartService {
     public void deleteCartItem(Long userId, Long cartItemId){
         //내 장바구니 조회 — 없거나 남의 것이면 404
         Cart cart = cartRepository.findByIdAndUserId(cartItemId, userId)
-                .orElseThrow(() -> new CustomException(HttpStatus.NOT_FOUND, "상품을 찾을 수 없습니다."));
+                .orElseThrow(() -> new CustomException(HttpStatus.NOT_FOUND, "존재하지 않거나 접근할 수 없는 장바구니 항목입니다."));
 
         cartRepository.delete(cart);
     }
