@@ -104,4 +104,10 @@ public class Product extends BaseTimeEntity {
         return discountRate == null ? 0 : discountRate;
     }
 
+    //리뷰 작성·수정·삭제 시 재집계된 평점 통계 반영
+    public void updateRating(double ratingAvg, int ratingCount){
+        this.ratingAvg = ratingAvg;
+        this.ratingCount = ratingCount;
+    }
+
 }

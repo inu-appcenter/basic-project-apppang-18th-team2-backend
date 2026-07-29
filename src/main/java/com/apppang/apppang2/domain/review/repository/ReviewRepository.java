@@ -24,4 +24,11 @@ public interface ReviewRepository extends JpaRepository<Review, Long> {
 
     @Query("SELECT r.imageUrl2 FROM Review r WHERE r.imageUrl2 IS NOT NULL")
     List<String> findAllImageUrl2();
+
+    //상품의 리뷰 평점 평균 (리뷰가 없으면 null)
+    @Query("SELECT AVG(r.rating) FROM Review r WHERE r.productId = :productId")
+    Double averageRatingByProductId(@Param("productId") Long productId);
+
+    //상품의 리뷰 수 (파생 쿼리)
+    long countByProductId(Long productId);
 }
