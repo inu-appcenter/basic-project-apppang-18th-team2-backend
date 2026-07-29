@@ -1,12 +1,15 @@
 package com.apppang.apppang2.domain.product.entity;
 
+import com.apppang.apppang2.domain.category.entity.Category;
 import com.apppang.apppang2.global.common.BaseTimeEntity;
+import com.apppang.apppang2.global.exception.CustomException;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.Formula;
+import org.springframework.http.HttpStatus;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -22,9 +25,10 @@ public class Product extends BaseTimeEntity {
     @Column(name = "product_id")
     private Long id;
 
-    // ponytail: 카테고리 도메인이 아직 없어서 FK 값만 보관
-    @Column(name = "category_id", nullable = false)
-    private Long categoryId;
+    //카테고리 참조
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "category_id", nullable = false)
+    private Category category;
 
     @Column(nullable = false)
     private String name;
@@ -66,9 +70,9 @@ public class Product extends BaseTimeEntity {
     private Set<String> events = new HashSet<>();
 
     @Builder
-    public Product(Long categoryId, String name, String description, int price, int stock,
+    public Product(Category category, String name, String description, int price, int stock,
                    String image1, String image2, Integer discountRate, Integer discountPrice){
-        this.categoryId = categoryId;
+        this.category = category;
         this.name = name;
         this.description = description;
         this.price = price;
@@ -81,8 +85,29 @@ public class Product extends BaseTimeEntity {
         this.ratingCount = 0;
     }
 
-    //주문 시 재고 차감 (재고 충분 여부는 서비스에서 검증 후 호출)
+    //주문 시 재고 차감
+    //재고를 차감할때는 재고 부족을 확인하고 부족하다면 예외를 발생함
     public void decreaseStock(int quantity){
+        if(this.stock < quantity){
+            throw new CustomException(HttpStatus.BAD_REQUEST, "재고보다 많은 수량을 담을 수 없습니다.");
+        }
         this.stock -= quantity;
     }
+
+    //주문 취소시 재고 복구
+    public void increaseStock(int quantity) {
+        this.stock += quantity;
+    }
+
+    //discountRate가 null이라면 0으로 처리. DTO에서 별도 처리를 하지 않아도 되도록 하는 캡슐화
+    public int getDiscountRateOrZero() {
+        return discountRate == null ? 0 : discountRate;
+    }
+
+    //리뷰 작성·수정·삭제 시 재집계된 평점 통계 반영
+    public void updateRating(double ratingAvg, int ratingCount){
+        this.ratingAvg = ratingAvg;
+        this.ratingCount = ratingCount;
+    }
+
 }

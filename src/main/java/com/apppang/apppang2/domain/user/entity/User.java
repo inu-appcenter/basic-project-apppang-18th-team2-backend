@@ -24,6 +24,7 @@ public class User extends BaseTimeEntity {
     @Column(nullable = false, name = "user_name")
     private String name;
 
+    @Column(nullable = false)
     private String phone;
 
     @Enumerated(EnumType.STRING)
@@ -64,6 +65,9 @@ public class User extends BaseTimeEntity {
     public void delete() {
         this.deleted = true;
         this.email = "deleted_" + this.id + "_" + this.email;
+        this.name = "탈퇴한 사용자";      //이름은 탈퇴한 사용자로 표시
+        this.phone = null;             //전화번호 및 프로필 이미지 비워두기
+        this.profileImage = null;
     }
 
     //비밀번호 재설정

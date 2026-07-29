@@ -21,10 +21,8 @@ import java.util.List;
 @Service
 @RequiredArgsConstructor
 public class AddressService {
-
-    //유저 정보를 DB에서 먼저 조회
     private final AddressRepository addressRepository;
-    private final UserRepository userRepository;        //유저 존재 여부
+    private final UserRepository userRepository;
 
     //로그인한 유저의 주소 목록을 가져옴
     public List<AddressResponse> getMyAddress(Long userId){
@@ -34,15 +32,18 @@ public class AddressService {
     }
 
     //배송지 추가
+    @Transactional
     public Long addAddress(Long userId, AddressRequest request){
-
         //유저 조회
-        User user = userRepository.findById(userId)
-                .orElseThrow(()->new CustomException(HttpStatus.NOT_FOUND, "유저를 찾을 수 없습니다."));
+        //@AuthenticationPrincipal로 이미 검증된 값이라 불필요한 DB접근으로 판단됨 (롤백을 위해 주석처리만)
+//        User user = userRepository.findById(userId)
+//                .orElseThrow(()->new CustomException(HttpStatus.NOT_FOUND, "유저를 찾을 수 없습니다."));
+
+        User user = userRepository.getReferenceById(userId); //프록시로 처리
 
 
         //새로 추가할 주소가 기본배송지일 경우 기존에 등록된 기본배송지를 해제
-        if(request.isDefault()){
+        if(request.isDefaultAddress()){
             addressRepository.findByUserIdAndIsDefaultTrue(user.getId())
                     .ifPresent(existingAddress -> existingAddress.updateDefault(false));
         }
@@ -54,7 +55,7 @@ public class AddressService {
                 .receiverPhone(request.getReceiverPhone())
                 .roadAddress(request.getRoadAddress())
                 .detailAddress(request.getDetailAddress())
-                .isDefault(request.isDefault())
+                .isDefault(request.isDefaultAddress())
                 .build();
 
         //DB에 저장하고 생성된 배송지 ID 반환
@@ -65,10 +66,9 @@ public class AddressService {
     //배송지 수정
     @Transactional
     public void updateAddress(Long userId, Long addressId, AddressUpdateRequest updateRequest){
-
         //addressId로 수정할 배송지를 DB에서 찾음
         Address address = addressRepository.findById(addressId)
-                .orElseThrow(() -> new CustomException(HttpStatus.NOT_FOUND, "존재하지 않는 배송지입니다."));
+                .orElseThrow(() -> new CustomException(HttpStatus.NOT_FOUND, "배송지를 찾을 수 없습니다."));
 
         log.info("토큰에서 뽑은 로그인 유저 Id : {}", userId);
         log.info("DB에 저장된 배송지 주인 Id : {}", address.getUser().getId());
@@ -86,10 +86,9 @@ public class AddressService {
     //기본배송지 수정
     @Transactional
     public AddressUpdateDefaultResponse updateDefaultAddress(Long userId, Long addressId){
-
         //기본 배송지로 만들 타겟 배송지 조회
         Address targetAddress = addressRepository.findById(addressId)
-                .orElseThrow(()->new CustomException(HttpStatus.NOT_FOUND,"존재하지 않는 배송지입니다."));
+                .orElseThrow(()->new CustomException(HttpStatus.NOT_FOUND,"배송지를 찾을 수 없습니다."));
 
         //배송지가 로그인한 유저의 것이 맞는지 권한 확인
         if(!targetAddress.getUser().getId().equals(userId)){
@@ -112,10 +111,12 @@ public class AddressService {
     }
 
     //배송지 삭제
+    @Transactional
     public void deleteAddress(Long userId, Long addressId){
         //삭제할 배송지 조회
         Address address = addressRepository.findById(addressId)
-                .orElseThrow(()->new CustomException(HttpStatus.BAD_REQUEST, "존재하지 않는 배송지입니다."));
+                //다른 응답과 상태코드가 달라 404로 통일
+                .orElseThrow(()->new CustomException(HttpStatus.NOT_FOUND, "배송지를 찾을 수 없습니다."));
 
         //배송지가 로그인한 유저의 것이 맞는지 권한 확인
         if(!address.getUser().getId().equals(userId)){
@@ -128,8 +129,7 @@ public class AddressService {
             throw new CustomException(HttpStatus.CONFLICT, "기본 배송지는 삭제할 수 없습니다.");
         }
 
-        addressRepository.delete(address);      //상속받은 JpaRepository 안에 delete 메서드 구현되어있음
+        addressRepository.delete(address);
         log.info("배송지 삭제 완료");
     }
-
 }

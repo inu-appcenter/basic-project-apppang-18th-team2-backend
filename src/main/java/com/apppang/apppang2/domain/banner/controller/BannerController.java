@@ -16,11 +16,10 @@ import java.util.List;
 @RestController
 @RequiredArgsConstructor
 public class BannerController {
-
     private final BannerService bannerService;
 
     //배너 조회
-    @Operation(summary = "메인 베너 조회")
+    @Operation(summary = "메인 배너 조회")
     @GetMapping("/api/banners")
     //서비스가 준 List<BannerResponse>를 ResponseEntity로 포장하여 응답
     public ResponseEntity<ApiResponse<List<BannerResponse>>> getBanners(){

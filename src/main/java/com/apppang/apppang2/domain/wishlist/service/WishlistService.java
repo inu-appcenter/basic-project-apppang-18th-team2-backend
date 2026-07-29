@@ -1,6 +1,5 @@
 package com.apppang.apppang2.domain.wishlist.service;
 
-import com.apppang.apppang2.domain.address.entity.Address;
 import com.apppang.apppang2.domain.product.dto.response.ProductResponse;
 import com.apppang.apppang2.domain.product.entity.Product;
 import com.apppang.apppang2.domain.product.repository.ProductRepository;
@@ -11,6 +10,7 @@ import com.apppang.apppang2.domain.wishlist.entity.Wishlist;
 import com.apppang.apppang2.domain.wishlist.repository.WishlistRepository;
 import com.apppang.apppang2.global.exception.CustomException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -32,7 +32,7 @@ public class WishlistService {
         //데이터 조회
         List<Wishlist> wishList = wishlistRepository.findAllByUserIdWithProduct(userId);
 
-        //조회된 엔티티 리스트를 ProductReponse로 반환
+        //조회된 엔티티 리스트를 productResponses로 반환
         List<ProductResponse> productResponses = wishList.stream()
                 .map(wishlist->new ProductResponse(wishlist.getProduct(),true))
                 .collect(Collectors.toList());
@@ -50,15 +50,23 @@ public class WishlistService {
         Product product = productRepository.findById(productId)
                 .orElseThrow(()->new CustomException(HttpStatus.NOT_FOUND, "존재하지 않는 상품입니다"));
 
-        User user = userRepository.findById(userId)
-                .orElseThrow(()->new CustomException(HttpStatus.NOT_FOUND, "존재하지 않는 사용자입니다"));
+        //원활한 롤백을 위해 주석처리
+//        User user = userRepository.findById(userId)
+//                .orElseThrow(()->new CustomException(HttpStatus.NOT_FOUND, "존재하지 않는 사용자입니다"));
+
+        User user = userRepository.getReferenceById(userId); //프록시로 처리
 
         Wishlist wishlist = Wishlist.builder()
                 .user(user)
                 .product(product)
                 .build();
 
-        wishlistRepository.save(wishlist);
+        //유니크 제약 위반 INSERT가 시도되었을 때 이를 잡는 Try-catch문
+        try {
+            wishlistRepository.save(wishlist);
+        } catch (DataIntegrityViolationException e) {
+            throw new CustomException(HttpStatus.CONFLICT, "이미 찜한 상품입니다.");
+        }
     }
 
     //찜 삭제

@@ -1,6 +1,7 @@
 package com.apppang.apppang2.global.exception;
 
 import com.apppang.apppang2.global.common.ApiResponse;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
@@ -9,7 +10,9 @@ import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.multipart.support.MissingServletRequestPartException;
 
+@Slf4j
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
@@ -68,10 +71,20 @@ public class GlobalExceptionHandler {
                 .body(ApiResponse.fail("잘못된 조회 조건입니다."));
     }
 
+    // 파일 첨부 없이 업로드 API 호출 시 처리
+    @ExceptionHandler(MissingServletRequestPartException.class)
+    public ResponseEntity<ApiResponse<Void>> handleMissingFile(MissingServletRequestPartException e) {
+        return ResponseEntity
+                .status(HttpStatus.BAD_REQUEST)
+                .body(ApiResponse.fail("파일을 첨부해주세요."));
+    }
+
+
     // 위에서 처리하지 못한 모든 예상 밖의 서버 오류 처리
     // 클라이언트에게 내부 오류 상세를 노출하지 않고 공통 응답 형식으로 반환
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiResponse<Void>> handleException(Exception e) {
+        log.error("Unhandled exception", e); // 로그 추가하여 원인 추적
         return ResponseEntity
                 .status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(ApiResponse.fail("서버 내부 오류가 발생했습니다."));

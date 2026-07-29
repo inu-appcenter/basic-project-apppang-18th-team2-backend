@@ -1,9 +1,11 @@
 package com.apppang.apppang2.domain.product.repository;
 
 import com.apppang.apppang2.domain.product.entity.Product;
+import jakarta.persistence.LockModeType;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -16,7 +18,7 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
     @Query("""
             SELECT p FROM Product p
             WHERE (:keyword IS NULL OR p.name LIKE CONCAT('%', :keyword, '%'))
-              AND (:categoryId IS NULL OR p.categoryId = :categoryId)
+              AND (:categoryId IS NULL OR p.category.id = :categoryId)
               AND (:discountOnly = FALSE OR p.discountRate > 0)
               AND (:event IS NULL OR :event MEMBER OF p.events)
             """)
@@ -26,6 +28,12 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
                           @Param("event") String event,
                           Pageable pageable);
 
-    //keyword로 시작하는 상품을 최신순(ID 내림차순)으로 10개 가져오기(대소문자 무시)
-    List<Product> findTop10ByNameStartingWithIgnoreCaseOrderByIdDesc(String keyword);
+    // 결제 재고 차감에 사용할 Lock
+    // 안정성을 챙기기 위해 비관적 락으로 동시성 제어
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    //ORDER BY p.id ASC로 항상 아이디순으로 락을 걸게하여 데드락을 방지
+    @Query("SELECT p FROM Product p WHERE p.id IN :ids ORDER BY p.id ASC")
+    List<Product> findAllByIdWithLock(@Param("ids") List<Long> ids);
+
+
 }

@@ -6,6 +6,7 @@ import com.apppang.apppang2.domain.wishlist.service.WishlistService;
 import com.apppang.apppang2.global.common.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -30,7 +31,8 @@ public class WishlistController {
     //찜 추가
     @Operation(summary = "찜 추가")
     @PostMapping
-    public ResponseEntity<ApiResponse<Void>> addWishlist(@AuthenticationPrincipal Long userId, @RequestBody WishlistRequest request){
+    public ResponseEntity<ApiResponse<Void>> addWishlist(@AuthenticationPrincipal Long userId,
+                                                         @Valid @RequestBody WishlistRequest request){
 
         wishlistService.addWishlist(userId, request.getProductId());
 
@@ -42,7 +44,8 @@ public class WishlistController {
     //찜 삭제
     @Operation(summary = "찜 삭제")
     @DeleteMapping
-    public ResponseEntity<ApiResponse<Void>> deleteWishlist(@AuthenticationPrincipal Long userId, @RequestBody WishlistRequest request){
+    public ResponseEntity<ApiResponse<Void>> deleteWishlist(@AuthenticationPrincipal Long userId,
+                                                            @Valid @RequestBody WishlistRequest request){
         wishlistService.deleteWishlist(userId, request.getProductId());  //서비스 삭제 로직 호출
         return ResponseEntity.ok(ApiResponse.success("찜 목록에서 삭제되었습니다."));
     }

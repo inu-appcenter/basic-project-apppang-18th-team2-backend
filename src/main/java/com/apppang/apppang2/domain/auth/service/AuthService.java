@@ -6,26 +6,25 @@ import com.apppang.apppang2.domain.auth.dto.response.FindIdResponse;
 import com.apppang.apppang2.domain.auth.dto.request.LoginRequest;
 import com.apppang.apppang2.domain.auth.dto.response.LoginResponse;
 import com.apppang.apppang2.domain.auth.dto.request.SignupRequest;
-import com.apppang.apppang2.domain.auth.entity.PasswordResetToken;
-import com.apppang.apppang2.domain.auth.entity.RefreshToken;
-import com.apppang.apppang2.domain.auth.repository.PasswordResetTokenRepository;
-import com.apppang.apppang2.domain.auth.repository.RefreshTokenRepository;
 import com.apppang.apppang2.domain.user.entity.Role;
 import com.apppang.apppang2.domain.user.entity.User;
 import com.apppang.apppang2.domain.user.repository.UserRepository;
 import com.apppang.apppang2.global.exception.CustomException;
 import com.apppang.apppang2.global.util.JwtUtil;
+import io.jsonwebtoken.JwtException;
+import org.springframework.beans.factory.annotation.Value;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.http.HttpStatus;
+import org.springframework.mail.MailException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
-import java.time.temporal.ChronoUnit;
+import java.time.Duration;
 import java.util.UUID;
+
 
 @Slf4j
 @RequiredArgsConstructor
@@ -34,13 +33,11 @@ public class AuthService {
     private final JwtUtil jwtUtil;
     private final UserRepository userRepository;
     private final BCryptPasswordEncoder bCryptPasswordEncoder;
-    private final RefreshTokenRepository refreshTokenRepository;
-    private final PasswordResetTokenRepository passwordResetTokenRepository;
+    private final StringRedisTemplate redisTemplate;
     private final MailService mailService;
 
-    @Value("${jwt.refresh-token.expiration}")
-    private long refreshTokenExpirationMs;
-
+    @Value("${frontend.url:http://localhost:5173}")
+    private String frontendUrl;
 
     //컨트롤러의 최종 응답을 위해 DB에 저장된 후 발급된 userId(Long)를 반환
     @Transactional
@@ -64,8 +61,8 @@ public class AuthService {
                 .phone(signupRequest.getPhone())
                 .agreeRequiredTerms(signupRequest.isAgreeRequiredTerms())
                 .agreeMarketing(signupRequest.isAgreeMarketing())
-                .role(Role.USER) // swagger 테스트를 위해 role를 추가
-                .deleted(false) // 회원탈퇴 hard 삭제 X
+                .role(Role.USER)
+                .deleted(false)
                 .build();
 
         //엔티티를 실제 DB에 저장
@@ -75,12 +72,11 @@ public class AuthService {
         return savedUser.getId();
     }
 
-    @Transactional
     public LoginResponse login(LoginRequest request) {
 
         //사용자 확인 (없으면 예외 발생)
         User user = userRepository.findByEmailAndDeletedFalse(request.getEmail())
-                .orElseThrow(() -> new CustomException(HttpStatus.UNAUTHORIZED, "가입되지 않은 이메일입니다."));
+                .orElseThrow(() -> new CustomException(HttpStatus.UNAUTHORIZED, "이메일 또는 비밀번호가 올바르지 않습니다."));
 
         //비밀번호 검증 (암호화된 비번과 비교)
         if (!bCryptPasswordEncoder.matches(request.getPassword(), user.getPassword())) {
@@ -91,17 +87,8 @@ public class AuthService {
         String accessToken = jwtUtil.generateAccessToken(user.getId(), user.getEmail());
         String refreshToken = jwtUtil.generateRefreshToken(user.getId());
 
-        //해당 유저가 이전에 발급받은 Refresh Token이 남아있다면 DB에서 삭제
-        refreshTokenRepository.deleteByUserId(user.getId());
-
-        //새 Refresh Token 엔티티 생성
-        RefreshToken tokenEntity = RefreshToken.builder()
-                .userId(user.getId())
-                .refreshToken(refreshToken)
-                .expiredAt(LocalDateTime.now().plus(refreshTokenExpirationMs, ChronoUnit.MILLIS))
-                .build();
-
-        refreshTokenRepository.save(tokenEntity);
+        //refreshToken을 Redis에 저장, 14일 후 자동 만료
+        redisTemplate.opsForValue().set("refresh:" + user.getId(), refreshToken, Duration.ofDays(14));
 
         //로그인 응답 DTO 생성 및 반환
         return LoginResponse.builder()
@@ -133,73 +120,68 @@ public class AuthService {
                 .build();
     }
 
-    @Transactional      //삭제하는 작업이므로 안전하게 실행
-    //로그아웃
+    //로그아웃: 저장된 refreshToken 삭제
     public void logout(Long userId){
-        //유저Id를 기준으로 DB에 저장된 Refresh Token을 삭제
-        try{
-            refreshTokenRepository.deleteByUserId(userId);
-            log.info("유저 {}의 RefreshToken을 성공적으로 삭제했습니다.", userId);
-        }catch(Exception e){
-            log.error("유저 {}의 RefreshToken 삭제 중 오류 발생: {}", userId, e.getMessage());
-        }
+        redisTemplate.delete("refresh:" + userId);
     }
 
     //비밀번호 찾기
-    @Transactional
     public void sendResetMail(String email){
         //유저 찾기
-        User user = userRepository.findByEmail(email)
+        User user = userRepository.findByEmailAndDeletedFalse(email)
                 .orElseThrow(()->new CustomException(HttpStatus.NOT_FOUND, "일치하는 회원 정보를 찾을 수 없습니다."));
 
-        //기존에 발급된 유요한 토큰이 있다면 삭제
-        passwordResetTokenRepository.deleteByUser(user);
-        passwordResetTokenRepository.flush();       //삭제부터 하고 insert 하기
-
-        //랜덤한 UUID 토큰 생성
+        //재설정 토큰을 Redis에 10분 만료기간으로 저장 (key=토큰, value=userId)
         String token = UUID.randomUUID().toString();
-        PasswordResetToken resetToken = PasswordResetToken.builder()
-                .token(token)
-                .user(user)
-                .expiryDate(LocalDateTime.now().plusMinutes(10))    //만료시간 10분
-                .build();
-        passwordResetTokenRepository.save(resetToken);
+        redisTemplate.opsForValue().set("pwreset:" + token, String.valueOf(user.getId()), Duration.ofMinutes(10));
 
-        String resetLink = "http://localhost:5173/password-reset?token=" + token;
-        mailService.sendResetPAsswordEmail(user.getEmail(), resetLink);
+        String resetLink = frontendUrl + "/password-reset?token=" + token;
 
+        try {
+            mailService.sendResetPasswordEmail(user.getEmail(), resetLink);
+        } catch (MailException e) {
+            throw new CustomException(HttpStatus.INTERNAL_SERVER_ERROR, "메일 발송에 실패했습니다. 잠시 후 다시 시도해주세요.");
+        }
     }
 
     //토큰 검증 및 새 비밀번호로 변경 요청
     @Transactional
     public void resetPassword(String token, String newPassword){
-        //토큰이 DB에 있는지 확인
-        PasswordResetToken resetToken = passwordResetTokenRepository.findByToken(token)
-                .orElseThrow(()->new CustomException(HttpStatus.BAD_REQUEST, "유효하지 않은 재설정 링크입니다."));
-
-        //토큰 만료 시간 확인
-        if(resetToken.isExpired()){
-            passwordResetTokenRepository.delete(resetToken);
-            throw new CustomException(HttpStatus.UNAUTHORIZED, "재설정 링크의 유효시간이 지났습니다. 다시 요청해주세요");
+        //조회하면서 만료 검사도 한다. 없으면 무효였거나 기간만료로 이미 사라진 것
+        String userIdStr = redisTemplate.opsForValue().get("pwreset:" + token);
+        if (userIdStr == null){
+            throw new CustomException(HttpStatus.BAD_REQUEST, "유효하지 않거나 만료된 재설정 링크입니다.");
         }
 
+        User user = userRepository.findById(Long.parseLong(userIdStr))
+                .orElseThrow(() -> new CustomException(HttpStatus.NOT_FOUND, "회원 정보를 찾을 수 없습니다."));
+
         //새 비밀번호 암호화해서 User 엔티티 업데이트
-        User user = resetToken.getUser();
         String encodedPassword = bCryptPasswordEncoder.encode(newPassword);
         user.updatePassword(encodedPassword);
 
         //사용 완료된 토큰 삭제
-        passwordResetTokenRepository.delete(resetToken);
+        redisTemplate.delete("pwreset:" + token);
+        //기존 refresh 토큰 삭제
+        redisTemplate.delete("refresh:" + user.getId());
     }
 
     //토큰 재발급
     public TokenDto reissueToken(String oldRefreshToken){
-        //DB에서 프론트엔드가 보낸 Refresh Token이 존재하는지 확인
-        RefreshToken tokenEntity = refreshTokenRepository.findByRefreshToken(oldRefreshToken)
-                .orElseThrow(()->new CustomException(HttpStatus.UNAUTHORIZED,"유효하지 않거나 만료된 Refresh Token입니다."));
+        //서명 검증 겸 userId 추출 — 위조, 만료 토큰은 JWT 예외를 401로 변환
+        Long userId;
+        try {
+            userId = Long.valueOf(jwtUtil.getClaims(oldRefreshToken).getSubject());
+        } catch (JwtException | IllegalArgumentException e) {
+            throw new CustomException(HttpStatus.UNAUTHORIZED, "유효하지 않거나 만료된 Refresh Token입니다.");
+        }
 
-        //토큰의 유저 정보 찾기
-        Long userId = tokenEntity.getUserId();
+        //Redis 저장본과 대조, 없으면 로그아웃됐거나 토큰만료, 비밀번호 변경
+        String saved = redisTemplate.opsForValue().get("refresh:" + userId);
+        if (saved == null || !saved.equals(oldRefreshToken)){
+            throw new CustomException(HttpStatus.UNAUTHORIZED, "유효하지 않거나 만료된 Refresh Token입니다.");
+        }
+
         User user = userRepository.findById(userId)
                 .orElseThrow(()->new CustomException(HttpStatus.NOT_FOUND,"회원 정보를 찾을 수 없습니다."));
 
@@ -207,15 +189,8 @@ public class AuthService {
         String newAccessToken = jwtUtil.generateAccessToken(user.getId(), user.getEmail());
         String newRefreshToken = jwtUtil.generateRefreshToken(user.getId());
 
-        refreshTokenRepository.delete(tokenEntity);
-
-        //발급된 새로운 Refresh Token을 DB에 저장하고 최종 반환
-        RefreshToken newTokenEntity = RefreshToken.builder()
-                .userId(user.getId())
-                .refreshToken(newRefreshToken)
-                .expiredAt(LocalDateTime.now().plus(refreshTokenExpirationMs, ChronoUnit.MILLIS))
-                .build();
-        refreshTokenRepository.save(newTokenEntity);
+        //덮어쓰기 = 기존 토큰 무효화 + 새 토큰 저장 (delete+save 두 단계가 한 줄로)
+        redisTemplate.opsForValue().set("refresh:" + userId, newRefreshToken, Duration.ofDays(14));
 
         return TokenDto.builder()
                 .accessToken(newAccessToken)

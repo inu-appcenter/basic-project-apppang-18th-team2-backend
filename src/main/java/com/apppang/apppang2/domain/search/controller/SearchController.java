@@ -27,4 +27,10 @@ public class SearchController {
         List<String> result = searchService.getAutoComplete(keyword);
         return ResponseEntity.ok(ApiResponse.success("자동완성 조회에 성공했습니다.",result));
     }
+
+    @Operation(summary = "인기 검색어")
+    @GetMapping("/popular")
+    public ResponseEntity<ApiResponse<List<String>>> getPopular(){
+        return ResponseEntity.ok(ApiResponse.success("인기 검색어 조회에 성공했습니다.", searchService.getPopularKeywords()));
+    }
 }
