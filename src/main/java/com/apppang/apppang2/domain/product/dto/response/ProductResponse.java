@@ -22,7 +22,7 @@ public class ProductResponse {
         this.name = product.getName();
         this.thumbnail = product.getImage1();
         this.originalPrice = product.getPrice();
-        this.discountRate = product.getDiscountRate() == null ? 0 : product.getDiscountRate();
+        this.discountRate = product.getDiscountRateOrZero(); //반복된 코드를 Product가 소유하는 메서드로 전환
         this.salePrice = product.getSalePrice();
         this.rating = product.getRatingAvg();
         this.reviewCount = product.getRatingCount();
