@@ -126,7 +126,7 @@ public class AuthController {
     //비밀번호 찾기(이메일 발송 요청)
     @Operation(summary = "비밀번호 찾기(이메일요청)")
     @PostMapping("/password-reset/request")
-    public ResponseEntity<ApiResponse<String>> requestPassword(@RequestBody PasswordRequest.Request request){
+    public ResponseEntity<ApiResponse<String>> requestPassword(@Valid @RequestBody PasswordRequest.Request request){
         authService.sendResetMail(request.getEmail());
         return ResponseEntity.ok(ApiResponse.success("비밀번호 재설정이 가능합니다."));
     }
@@ -134,7 +134,7 @@ public class AuthController {
     //새 비밀번호로 변경 요청
     @Operation(summary = "새 비밀번호 변경")
     @PatchMapping("/password-reset")
-    public ResponseEntity<ApiResponse<String>> resetPassword(@RequestBody PasswordRequest.Confirm request){
+    public ResponseEntity<ApiResponse<String>> resetPassword(@Valid @RequestBody PasswordRequest.Confirm request){
         authService.resetPassword(request.getToken(), request.getNewPassword());
         return ResponseEntity.ok(ApiResponse.success("비밀번호가 변경되었습니다."));
     }

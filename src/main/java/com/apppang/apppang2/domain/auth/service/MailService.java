@@ -11,7 +11,7 @@ public class MailService {
     //Spring Boot가 application.yml 설정을 읽어서 자동으로 만들어주는 메일 발송 도구
     private final JavaMailSender javaMailSender;
 
-    public void sendResetPAsswordEmail(String toEmail, String resetLink){
+    public void sendResetPasswordEmail(String toEmail, String resetLink){
         //단순 텍스트 메일을 만들 수 있는 객체 생성
         SimpleMailMessage message = new SimpleMailMessage();
 
