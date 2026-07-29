@@ -1,5 +1,6 @@
 package com.apppang.apppang2.domain.product.entity;
 
+import com.apppang.apppang2.domain.category.entity.Category;
 import com.apppang.apppang2.global.common.BaseTimeEntity;
 import com.apppang.apppang2.global.exception.CustomException;
 import jakarta.persistence.*;
@@ -24,9 +25,10 @@ public class Product extends BaseTimeEntity {
     @Column(name = "product_id")
     private Long id;
 
-    // ponytail: 카테고리 도메인이 아직 없어서 FK 값만 보관
-    @Column(name = "category_id", nullable = false)
-    private Long categoryId;
+    //카테고리 참조
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "category_id", nullable = false)
+    private Category category;
 
     @Column(nullable = false)
     private String name;
@@ -68,9 +70,9 @@ public class Product extends BaseTimeEntity {
     private Set<String> events = new HashSet<>();
 
     @Builder
-    public Product(Long categoryId, String name, String description, int price, int stock,
+    public Product(Category category, String name, String description, int price, int stock,
                    String image1, String image2, Integer discountRate, Integer discountPrice){
-        this.categoryId = categoryId;
+        this.category = category;
         this.name = name;
         this.description = description;
         this.price = price;
