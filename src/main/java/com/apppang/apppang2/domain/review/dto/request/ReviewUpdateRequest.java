@@ -3,6 +3,8 @@ package com.apppang.apppang2.domain.review.dto.request;
 import jakarta.validation.constraints.*;
 import lombok.Getter;
 
+import java.util.List;
+
 @Getter
 public class ReviewUpdateRequest {
     @NotNull(message = "별점은 필수입니다.")
@@ -12,4 +14,6 @@ public class ReviewUpdateRequest {
 
     @Size(min = 10, max = 1000, message = "리뷰는 10자 이상, 1000자 이하로 작성해주세요")
     private String content;
+
+    private List<String> imageUrls;
 }

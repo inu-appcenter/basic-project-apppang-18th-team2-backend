@@ -149,8 +149,23 @@ public class ReviewService {
             throw new CustomException(HttpStatus.FORBIDDEN, "본인이 작성한 리뷰만 수정할 수 있습니다.");
         }
 
-        //content 양 끝 공백 제거하여 엔티티에 반환
-        review.update(request.getRating(), request.getContent().trim());
+        //내용은 선택 항목 null이면 그대로 null(내용 없음), 있으면 양끝 공백 제거
+        String content = request.getContent() == null ? null : request.getContent().trim();
+
+        //최종 이미지 목록을 url1/url2로 분배 (없거나 비었으면 둘 다 null = 이미지 전부 삭제)
+        String url1 = null;
+        String url2 = null;
+        List<String> imageUrls = request.getImageUrls();
+
+        if(imageUrls != null && !imageUrls.isEmpty()){
+            if(imageUrls.size() > 2){
+                throw new CustomException(HttpStatus.BAD_REQUEST,"이미지는 최대 2장까지 첨부할 수 있습니다.");
+            }
+            url1 = imageUrls.get(0);
+            url2 = imageUrls.size() > 1 ? imageUrls.get(1) : null;
+        }
+
+        review.update(request.getRating(), content, url1, url2 );
     }
 
     //리뷰 삭제
@@ -166,7 +181,7 @@ public class ReviewService {
         //연관된 도움돼요 삭제
         reviewLikeRepository.deleteByReviewId(reviewId);
 
-        //TODO:S3에 저장된 실제 이미지 파일 삭제
+        //S3에 저장된 이미지 파일은 GC로 삭제한다.
 
         //DB에서 완전 삭제
         reviewRepository.delete(review);
