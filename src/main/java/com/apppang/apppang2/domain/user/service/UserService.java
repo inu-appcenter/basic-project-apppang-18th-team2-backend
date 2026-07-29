@@ -19,9 +19,7 @@ public class UserService {
     public MyInfoResponse getMyInfo(Long userId) {
 
         // 회원 조회
-        User user = userRepository.findByIdAndDeletedFalse(userId)
-                .orElseThrow(() ->
-                        new CustomException(HttpStatus.NOT_FOUND, "존재하지 않는 회원입니다."));
+        User user = findActiveUser(userId);
 
         // DTO 변환
         return MyInfoResponse.builder()
@@ -37,9 +35,7 @@ public class UserService {
     public void updateMyInfo(Long userId,
                              UpdateMyInfoRequest request) {
 
-        User user = userRepository.findByIdAndDeletedFalse(userId)
-                .orElseThrow(() ->
-                        new CustomException(HttpStatus.NOT_FOUND, "존재하지 않는 회원입니다."));
+        User user = findActiveUser(userId);
 
         user.updateMyInfo(
                 request.getName(),
@@ -50,10 +46,14 @@ public class UserService {
     @Transactional
     public void deleteMyInfo(Long userId) {
 
-        User user = userRepository.findByIdAndDeletedFalse(userId)
-                .orElseThrow(() ->
-                        new CustomException(HttpStatus.NOT_FOUND, "존재하지 않는 회원입니다."));
+        User user = findActiveUser(userId);
 
         user.delete();
+    }
+
+    //중복되는 회원 조회 로직 공통화
+    private User findActiveUser(Long userId){
+        return userRepository.findByIdAndDeletedFalse(userId)
+                .orElseThrow(() -> new CustomException(HttpStatus.NOT_FOUND, "존재하지 않는 회원입니다."));
     }
 }
