@@ -62,9 +62,11 @@ public class Review extends BaseTimeEntity {
     }
 
     //리뷰 수정
-    public void update(double rating, String content){
+    public void update(double rating, String content, String imageUrl1, String imageUrl2){
         this.rating = rating;
         this.content = content;
+        this.imageUrl1 = imageUrl1;
+        this.imageUrl2 = imageUrl2;
     }
 
     //도움돼요 계산
