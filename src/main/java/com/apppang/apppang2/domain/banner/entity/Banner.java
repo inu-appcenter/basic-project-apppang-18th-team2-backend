@@ -1,6 +1,5 @@
 package com.apppang.apppang2.domain.banner.entity;
 
-import com.apppang.apppang2.global.common.BaseTimeEntity;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Builder;
@@ -11,7 +10,11 @@ import org.hibernate.annotations.CreationTimestamp;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "banners")
+//복합 인덱스 생성
+@Table(name = "banners",
+        indexes = {
+                @Index(name = "idx_banner_active_order", columnList = "is_active, display_order")
+        })
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)  //JPA만 접근할 수 있도록 protected로 제한
 public class Banner {
@@ -32,20 +35,19 @@ public class Banner {
     @Column(nullable = false)
     private int displayOrder;   //표시순서(낮을수록 먼저 노출)
 
-    @Column(nullable = false)
-    private boolean isActive;   //활성화 여부
+    @Column(name = "is_active", nullable = false)
+    private boolean active;   //활성화 여부
 
     @CreationTimestamp  //객체가 생성될 때 자동으로 현재시간 넣어줌
     @Column(name = "created_at", nullable = false, columnDefinition = "datetime(6) default CURRENT_TIMESTAMP(6)")
     private LocalDateTime createdAt;
 
     @Builder
-    public Banner(String title, String imageUrl,
-                  String targetUrl, int displayOrder, boolean isActive){
+    public Banner(String title, String imageUrl, String targetUrl, int displayOrder, boolean active){
         this.title = title;
         this.imageUrl = imageUrl;
         this.targetUrl = targetUrl;
         this.displayOrder = displayOrder;
-        this.isActive = isActive;
+        this.active = active;
     }
 }
