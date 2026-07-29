@@ -69,7 +69,7 @@ public class PaymentService {
         }
 
         //주문 상태 및 결제 수단 업데이트
-        order.updatePaymentInfo(OrderStatus.PAID, request.getPaymentMethod());
+        order.updatePaymentInfo(OrderStatus.DELIVERING, request.getPaymentMethod());
 
         Payment payment = Payment.builder()
                 .order(order)
