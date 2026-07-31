@@ -17,6 +17,8 @@ import com.apppang.apppang2.domain.payment.entity.PaymentMethod;
 import com.apppang.apppang2.domain.payment.repository.PaymentRepository;
 import com.apppang.apppang2.domain.product.entity.Product;
 import com.apppang.apppang2.domain.product.repository.ProductRepository;
+import com.apppang.apppang2.domain.review.entity.Review;
+import com.apppang.apppang2.domain.review.repository.ReviewRepository;
 import com.apppang.apppang2.global.exception.CustomException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.*;
@@ -39,6 +41,7 @@ public class OrderService {
     private final ProductRepository productRepository;
     private final AddressRepository addressRepository;
     private final PaymentRepository paymentRepository; //결제 상태 조회도 하기 위해 추가
+    private final ReviewRepository reviewRepository;   //주문 상세에 리뷰 작성 여부·내용을 담기 위해 추가
 
     //주문 생성: 상품 검증 → 재고 차감 → 주문 저장 → 주문 상세 저장이 전부 한 트랜잭션
     //중간에 예외가 나면 원상복구됨
@@ -237,6 +240,14 @@ public class OrderService {
         int salePrice = detail.getDiscountPrice();
         int discountRate = originalPrice == 0 ? 0 : (originalPrice - salePrice) * 100 / originalPrice;
 
+        //이 주문상세에 작성된 리뷰 (없으면 null — 프론트 버튼 전환·수정 초기값용)
+        Review review = reviewRepository.findByOrderDetailId(detail.getId()).orElse(null);
+        List<String> reviewImages = new ArrayList<>();
+        if (review != null) {
+            if (review.getImageUrl1() != null) reviewImages.add(review.getImageUrl1());
+            if (review.getImageUrl2() != null) reviewImages.add(review.getImageUrl2());
+        }
+
         return OrderDetailResponse.OrderItemInfo.builder()
                 .productId(detail.getProduct().getId())
                 .productName(detail.getProduct().getName())
@@ -246,6 +257,10 @@ public class OrderService {
                 .salePrice(salePrice)
                 .quantity(detail.getQuantity())
                 .totalPrice(salePrice * detail.getQuantity())
+                .reviewId(review == null ? null : review.getId())
+                .reviewRating(review == null ? null : review.getRating())
+                .reviewContent(review == null ? null : review.getContent())
+                .reviewImages(reviewImages)
                 .build();
     }
 

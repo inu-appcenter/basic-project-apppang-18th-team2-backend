@@ -8,12 +8,16 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.util.List;
+import java.util.Optional;
 
 
 public interface ReviewRepository extends JpaRepository<Review, Long> {
 
     //orderDetailId로 이미 작성된 리뷰가 있는지 확인
     boolean existsByOrderDetailId(Long orderDetailId);
+
+    //주문상세에 작성된 리뷰 조회 (주문 상세 응답의 리뷰 정보용)
+    Optional<Review> findByOrderDetailId(Long orderDetailId);
 
     //상품Id로 리뷰를 조회하며 Pageable 규격에 따라 페이징 및 정렬 처리
     @Query("SELECT r FROM Review r JOIN FETCH r.user WHERE r.productId = :productId")

@@ -26,8 +26,9 @@ public class ReviewDetailResponse {
 
     private final int helpCount;
     private final boolean helped;      //현재 로그인한 유저가 이 리뷰에 도움돼요를 눌렀는지 여부
+    private final boolean mine;        //현재 로그인한 유저가 작성한 리뷰인지 (수정·삭제 버튼 노출 판단용)
 
-    public static ReviewDetailResponse of(Review review, User user, boolean isHelped){
+    public static ReviewDetailResponse of(Review review, User user, boolean isHelped, boolean mine){
         //유저 탈퇴 여부 및 null 체크
         String displayUserName = "알 수 없음";
         if(user!=null){
@@ -47,6 +48,7 @@ public class ReviewDetailResponse {
                 .createdAt(review.getCreatedAt())
                 .helpCount(review.getHelpCount())
                 .helped(isHelped)
+                .mine(mine)
                 .build();
     }
     private static String maskName(String name){
