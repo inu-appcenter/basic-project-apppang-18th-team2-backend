@@ -79,6 +79,7 @@ class OrderTest{
     private User savedUser;
     private Product savedProduct;
     private Address savedAddress;
+    private String uniqueEmail;
 
     @BeforeEach
     void setUp() {
@@ -91,12 +92,18 @@ class OrderTest{
         categoryRepository.deleteAll();
         userRepository.deleteAll();
 
+        //이메일을 동적으로 생성하여 중복 에러 방지
+        uniqueEmail = "test_" + System.currentTimeMillis() + "@test.com";
+
         savedUser = userRepository.save(User.builder()
-                .email("test@test.com")
+                .email(uniqueEmail)
                 .name("홍길동")
                 .password("password1234")
                 .phone("01012345678")
                 .role(Role.USER)
+                .agreeRequiredTerms(true)
+                .agreeMarketing(false)
+                .deleted(false)
                 .build());
 
         Category savedCategory = categoryRepository.findById(1L)

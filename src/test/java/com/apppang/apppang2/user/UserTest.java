@@ -40,12 +40,14 @@ class UserTest {
     private UserRepository userRepository;
 
     private User savedUser;
+    private String uniqueEmail;
 
     @BeforeEach
     void setUp() {
         //테스트 실행 전 기본 테스트 유저를 미리 DB에 저장
+        uniqueEmail = "test_"+System.currentTimeMillis()+"@test.com";
         User user = User.builder()
-                .email("test@test.com")
+                .email(uniqueEmail)
                 .name("홍길동")
                 .password("password123!")
                 .phone("01012345678")
@@ -67,7 +69,7 @@ class UserTest {
         mockMvc.perform(get("/api/users/me")
                         .with(user(userIdStr)))     //요청 보내기
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.email").value("test@test.com")) //이메일 값 검증
+                .andExpect(jsonPath("$.data.email").value(uniqueEmail)) //이메일 값 검증
                 .andExpect(jsonPath("$.data.name").value("홍길동"))
                 .andDo(print());
     }

@@ -9,6 +9,7 @@ import com.apppang.apppang2.domain.category.repository.CategoryRepository;
 import com.apppang.apppang2.domain.product.entity.Product;
 import com.apppang.apppang2.domain.product.repository.ProductRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -49,12 +50,15 @@ class CartTest {
 
     private Product savedProduct;
 
+    @Autowired
+    private EntityManager entityManager;
+
     @BeforeEach
     void setUp(){
         cartRepository.deleteAll();
         productRepository.deleteAll();
-        categoryRepository.deleteAll();
 
+        // 카테고리는 매번 지우지 않고, 이미 있으면 그걸 재사용
         Category savedCategory = categoryRepository.findById(1L)
                 .orElseGet(() -> categoryRepository.save(
                         Category.builder()
