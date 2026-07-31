@@ -2,7 +2,6 @@ package com.apppang.apppang2.order;
 
 import com.apppang.apppang2.domain.address.entity.Address;
 import com.apppang.apppang2.domain.address.repository.AddressRepository;
-import com.apppang.apppang2.domain.cart.entity.Cart;
 import com.apppang.apppang2.domain.cart.repository.CartRepository;
 import com.apppang.apppang2.domain.category.entity.Category;
 import com.apppang.apppang2.domain.category.repository.CategoryRepository;
@@ -30,18 +29,16 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
-import org.springframework.security.test.context.support.WithMockUser;
+import org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
-        import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
+import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -129,7 +126,6 @@ class OrderTest{
 
     @Test
     @DisplayName("주문 생성 성공 - 주문 시 상품 재고가 정상적으로 차감")
-    @WithMockUser(username = "1")
     void createOrder_stock_decrease_success() throws Exception {
         int initialStock = savedProduct.getStock(); // 10개
         int orderQuantity = 3;
@@ -146,7 +142,8 @@ class OrderTest{
 
         mockMvc.perform(post("/api/orders")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(requestBody))
+                        .content(requestBody)
+                        .with(SecurityMockMvcRequestPostProcessors.user(String.valueOf(savedUser.getId()))))
                 .andExpect(status().isOk())
                 .andDo(print());
 
@@ -157,7 +154,6 @@ class OrderTest{
 
     @Test
     @DisplayName("주문 목록 조회 성공 - 내 주문 목록 조회")
-    @WithMockUser(username = "1")
     void getMyOrders_success() throws Exception {
         //given: 미리 주문 데이터 하나 생성해두기
         Order order = orderRepository.save(Order.builder()
@@ -180,7 +176,8 @@ class OrderTest{
 
         //when & then
         mockMvc.perform(get("/api/orders")
-                        .param("page", "0"))
+                        .param("page", "1")
+                        .with(SecurityMockMvcRequestPostProcessors.user(String.valueOf(savedUser.getId()))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.orders").isArray())
                 .andExpect(jsonPath("$.data.orders[0].orderId").value(order.getId()))
@@ -189,7 +186,6 @@ class OrderTest{
 
     @Test
     @DisplayName("주문 상세 조회 성공 - 주문 상세 및 전화번호 마스킹 확인")
-    @WithMockUser(username = "1")
     void getOrderDetail_success() throws Exception {
         Order savedOrder = orderRepository.save(Order.builder()
                 .userId(savedUser.getId())
@@ -217,7 +213,8 @@ class OrderTest{
                 .discountPrice(9000)
                 .build());
 
-        mockMvc.perform(get("/api/orders/{orderId}", savedOrder.getId()))
+        mockMvc.perform(get("/api/orders/{orderId}", savedOrder.getId())
+                        .with(SecurityMockMvcRequestPostProcessors.user(String.valueOf(savedUser.getId()))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.orderId").value(savedOrder.getId()))
                 .andExpect(jsonPath("$.data.receiver.phone").value("010-****-5678"))
@@ -228,7 +225,6 @@ class OrderTest{
 
     @Test
     @DisplayName("주문 취소 성공 - 주문 취소 시 상태 변경 및 재고 복구")
-    @WithMockUser(username = "1")
     void cancelOrder_success() throws Exception {
         int initialStock = savedProduct.getStock(); // 10개
         int orderQuantity = 2;
@@ -255,7 +251,8 @@ class OrderTest{
                 .discountPrice(9000)
                 .build());
 
-        mockMvc.perform(patch("/api/orders/{orderId}/cancel", order.getId()))
+        mockMvc.perform(patch("/api/orders/{orderId}/cancel", order.getId())
+                        .with(SecurityMockMvcRequestPostProcessors.user(String.valueOf(savedUser.getId()))))
                 .andExpect(status().isOk())
                 .andDo(print());
 
@@ -266,7 +263,6 @@ class OrderTest{
 
     @Test
     @DisplayName("배송 조회 성공 - 배송 중인 주문의 배송 정보 조회")
-    @WithMockUser(username = "1")
     void getDelivery_success() throws Exception {
         Order order = orderRepository.save(Order.builder()
                 .userId(savedUser.getId())
@@ -278,7 +274,8 @@ class OrderTest{
                 .address("테스트로 123")
                 .build());
 
-        mockMvc.perform(get("/api/orders/{orderId}/delivery", order.getId()))
+        mockMvc.perform(get("/api/orders/{orderId}/delivery", order.getId())
+                        .with(SecurityMockMvcRequestPostProcessors.user(String.valueOf(savedUser.getId()))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.status").value("DELIVERING"))
                 .andExpect(jsonPath("$.data.trackingNumber").value("1234567890"))
