@@ -83,11 +83,12 @@ class OrderTest{
     @BeforeEach
     void setUp() {
         cartRepository.deleteAll();
-        orderRepository.deleteAll();
         orderDetailRepository.deleteAll();
+        orderRepository.deleteAll();
+        paymentRepository.deleteAll();
         addressRepository.deleteAll();
         productRepository.deleteAll();
-        cartRepository.deleteAll();
+        categoryRepository.deleteAll();
         userRepository.deleteAll();
 
         savedUser = userRepository.save(User.builder()
@@ -98,11 +99,13 @@ class OrderTest{
                 .role(Role.USER)
                 .build());
 
-        Category category = Category.builder()
-                .id(1L)
-                .name("테스트 카테고리")
-                .build();
-        Category savedCategory = categoryRepository.save(category);
+        Category savedCategory = categoryRepository.findById(1L)
+                .orElseGet(() -> categoryRepository.save(
+                        Category.builder()
+                                .id(1L)
+                                .name("테스트 카테고리")
+                                .build()
+                ));
 
         savedProduct = productRepository.save(Product.builder()
                 .category(savedCategory)

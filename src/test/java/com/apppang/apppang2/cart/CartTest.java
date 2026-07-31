@@ -55,11 +55,13 @@ class CartTest {
         productRepository.deleteAll();
         categoryRepository.deleteAll();
 
-        Category category = Category.builder()
-                .id(1L)
-                .name("테스트 카테고리")
-                .build();
-        Category savedCategory = categoryRepository.save(category);
+        Category savedCategory = categoryRepository.findById(1L)
+                .orElseGet(() -> categoryRepository.save(
+                        Category.builder()
+                                .id(1L)
+                                .name("테스트 카테고리")
+                                .build()
+                ));
 
         Product product = Product.builder()
                 .category(savedCategory)
