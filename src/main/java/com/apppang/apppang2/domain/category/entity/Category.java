@@ -2,6 +2,7 @@ package com.apppang.apppang2.domain.category.entity;
 
 import jakarta.persistence.*;
 import lombok.AccessLevel;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
@@ -18,4 +19,10 @@ public class Category {
 
     @Column(nullable = false, length = 50)
     private String name;
+
+    @Builder
+    public Category(Long id, String name){
+        this.id = id;
+        this.name = name;
+    }
 }
