@@ -62,9 +62,14 @@ public class SearchService {
     }
 
     //검색 실행 시 호출 — 해당 키워드 점수 +1
-    public void recordKeyword(String keyword){String trimmed = keyword.trim();
+    public void recordKeyword(String keyword){
+        String trimmed = keyword.trim();
         //비었거나 비정상적으로 긴 검색어는 집계 제외
         if (trimmed.isEmpty() || trimmed.length() > 30) {
+            return;
+        }
+        //같은 글자만 반복된 검색어(ㅋㅋㅋㅋ, ㄱㄱㄱ 등)는 집계 제외
+        if (trimmed.matches("^(.)\\1+$")) {
             return;
         }
         try {

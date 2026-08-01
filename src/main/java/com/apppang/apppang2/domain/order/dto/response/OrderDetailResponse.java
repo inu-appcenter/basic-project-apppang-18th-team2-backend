@@ -53,6 +53,12 @@ public class OrderDetailResponse {
         private int salePrice;
         private int quantity;
         private int totalPrice;
+
+        //이 주문상세에 작성된 내 리뷰 (없으면 null — 프론트의 "리뷰 작성"↔"수정·삭제" 버튼 전환 및 수정 화면 초기값용)
+        private Long reviewId;
+        private Double reviewRating;
+        private String reviewContent;
+        private List<String> reviewImages;
     }
 
     @Getter

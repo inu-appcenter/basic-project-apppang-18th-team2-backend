@@ -113,7 +113,12 @@ public class ReviewService {
 
 
         List<ReviewDetailResponse> reviewDetails = reviews.getContent().stream()
-                .map(like -> ReviewDetailResponse.of(like, like.getUser(), likedReviewIds.contains(like.getId())))
+                .map(review -> ReviewDetailResponse.of(
+                        review,
+                        review.getUser(),
+                        likedReviewIds.contains(review.getId()),
+                        //내가 쓴 리뷰인지 — 서버가 비교해 결과만 내려줌 (작성자 id를 노출하지 않기 위함)
+                        userId != null && review.getUser().getId().equals(userId)))
                         .toList();  //리스트 형태로 반환
 
         //최종적으로 페이징 정보와 함께 묶어서 반환

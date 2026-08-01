@@ -33,15 +33,14 @@ public class ProductService {
             throw new CustomException(HttpStatus.BAD_REQUEST, "잘못된 조회 조건입니다.");
         }
 
-        //검색 실행 시 인기 검색어 점수 +1 (키워드 없는 목록 조회는 반영 X)
-        if (page == 0 && keyword != null && !keyword.trim().isEmpty()) {
-            searchService.recordKeyword(keyword);
-        }
-
-
         Pageable pageable = PageRequest.of(page, PAGE_SIZE, toSort(sort)); //각 페이지에 30개 씩 조회
         //필터+정렬+페이징이 적용된 상품 30개(이하)를 레포지토리에서 호출
         Slice<Product> slice = productRepository.search(keyword, categoryId, discountOnly, event, pageable);
+
+        //결과가 있는 검색만 인기 검색어로 집계, 목록에 조회되지 않을 경우는 반영 X
+        if (page == 0 && keyword != null && !keyword.trim().isEmpty() && !slice.getContent().isEmpty()) {
+            searchService.recordKeyword(keyword);
+        }
         //Slice에서 상품 리스트 꺼내고, 각 product를 ProductResponse(product)로 변환 결과를 리스트에 추가
         List<ProductResponse> products = slice.getContent().stream()
                 .map(ProductResponse::new)
