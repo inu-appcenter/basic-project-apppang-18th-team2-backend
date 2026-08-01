@@ -2,7 +2,9 @@ package com.apppang.apppang2.domain.payment.service;
 
 import com.apppang.apppang2.domain.cart.repository.CartRepository;
 import com.apppang.apppang2.domain.order.entity.Order;
+import com.apppang.apppang2.domain.order.entity.OrderDetail;
 import com.apppang.apppang2.domain.order.entity.OrderStatus;
+import com.apppang.apppang2.domain.order.repository.OrderDetailRepository;
 import com.apppang.apppang2.domain.order.repository.OrderRepository;
 import com.apppang.apppang2.domain.payment.dto.PaymentRequest;
 import com.apppang.apppang2.domain.payment.dto.PaymentResponse;
@@ -15,6 +17,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
+
 @Service
 @RequiredArgsConstructor
 public class PaymentService {
@@ -22,6 +26,7 @@ public class PaymentService {
     private final OrderRepository orderRepository;
     private final PaymentRepository paymentRepository;
     private final CartRepository cartRepository;
+    private final OrderDetailRepository orderDetailRepository;
 
     @Transactional
     public PaymentResponse processPayment(Long userId, PaymentRequest request){
@@ -53,9 +58,17 @@ public class PaymentService {
 
         paymentRepository.save(payment);
 
-        //장바구니 결제라면 장바구니 비우기
+        //장바구니 결제라면 구매한 상품만 장바구니에서 선택 비우기
         if(request.getIsFromCart()){
-            cartRepository.deleteByUserId(userId);
+            List<OrderDetail> details = orderDetailRepository.findByOrderId(order.getId());
+
+            List<Long> purchasedProductIds = details.stream()
+                    .map(detail -> detail.getProduct().getId())
+                    .toList();
+
+            if (!purchasedProductIds.isEmpty()) {
+                cartRepository.deleteByUserIdAndProductIdIn(userId, purchasedProductIds);
+            }
         }
 
         return PaymentResponse.builder()
