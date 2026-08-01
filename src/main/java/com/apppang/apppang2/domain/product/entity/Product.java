@@ -70,12 +70,13 @@ public class Product extends BaseTimeEntity {
     private Set<String> events = new HashSet<>();
 
     @Builder
-    public Product(Category category, String name, String description, int price, int stock,
+    public Product(Category category, String name, String description, int price, int salePrice, int stock,
                    String image1, String image2, Integer discountRate, Integer discountPrice){
         this.category = category;
         this.name = name;
         this.description = description;
         this.price = price;
+        this.salePrice = salePrice;
         this.stock = stock;
         this.image1 = image1;
         this.image2 = image2;
