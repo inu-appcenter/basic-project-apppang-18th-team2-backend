@@ -42,7 +42,7 @@ public class PaymentService {
         //결제 단계에서는 별도로 재고를 다루지 않음
 
         //주문 상태 및 결제 수단 업데이트
-        order.updatePaymentInfo(OrderStatus.PAID, request.getPaymentMethod());
+        order.updatePaymentInfo(OrderStatus.DELIVERING, request.getPaymentMethod());
 
         Payment payment = Payment.builder()
                 .order(order)
