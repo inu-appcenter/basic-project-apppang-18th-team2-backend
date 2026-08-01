@@ -34,7 +34,7 @@ public class PaymentService {
         }
 
         //사용자의 중복 결제 방지
-        if(OrderStatus.PAID.equals(order.getOrderStatus())){
+        if(OrderStatus.PREPARING.equals(order.getOrderStatus())){
             throw new CustomException(HttpStatus.BAD_REQUEST,"이미 결제가 완료된 주문입니다.");
         }
 
@@ -42,7 +42,7 @@ public class PaymentService {
         //결제 단계에서는 별도로 재고를 다루지 않음
 
         //주문 상태 및 결제 수단 업데이트
-        order.updatePaymentInfo(OrderStatus.DELIVERING, request.getPaymentMethod());
+        order.updatePaymentInfo(OrderStatus.PREPARING, request.getPaymentMethod());
 
         Payment payment = Payment.builder()
                 .order(order)
