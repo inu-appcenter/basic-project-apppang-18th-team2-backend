@@ -34,7 +34,7 @@ public class PaymentService {
         }
 
         //사용자의 중복 결제 방지
-        if(OrderStatus.PREPARING.equals(order.getOrderStatus())){
+        if(OrderStatus.PAID.equals(order.getOrderStatus())){
             throw new CustomException(HttpStatus.BAD_REQUEST,"이미 결제가 완료된 주문입니다.");
         }
 
