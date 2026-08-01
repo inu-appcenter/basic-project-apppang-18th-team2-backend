@@ -85,8 +85,8 @@ class OrderTest{
     void setUp() {
         cartRepository.deleteAll();
         orderDetailRepository.deleteAll();
-        orderRepository.deleteAll();
         paymentRepository.deleteAll();
+        orderRepository.deleteAll();
         addressRepository.deleteAll();
         productRepository.deleteAll();
         categoryRepository.deleteAll();
@@ -106,13 +106,12 @@ class OrderTest{
                 .deleted(false)
                 .build());
 
-        Category savedCategory = categoryRepository.findById(1L)
-                .orElseGet(() -> categoryRepository.save(
-                        Category.builder()
-                                .id(1L)
-                                .name("테스트 카테고리")
-                                .build()
-                ));
+        Category savedCategory = categoryRepository.save(
+                Category.builder()
+                        .id(1L)
+                        .name("테스트 카테고리")
+                        .build()
+        );
 
         savedProduct = productRepository.save(Product.builder()
                 .category(savedCategory)
